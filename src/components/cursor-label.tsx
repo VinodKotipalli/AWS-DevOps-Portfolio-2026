@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { cinematic, gsap } from '../lib/gsap';
+import { canHoverAndFinePointer, cinematic, gsap } from '../lib/gsap';
 
 export function CursorLabel() {
   const pillRef = useRef<HTMLDivElement>(null);
@@ -8,7 +8,7 @@ export function CursorLabel() {
   useEffect(() => {
     const pill = pillRef.current;
     const text = textRef.current;
-    if (!pill || !text || !cinematic()) return;
+    if (!pill || !text || !cinematic() || !canHoverAndFinePointer()) return;
 
     // 0.4-second smoothing for desktop pointer follower
     const moveX = gsap.quickTo(pill, 'x', { duration: 0.4, ease: 'power3.out' });
@@ -17,6 +17,7 @@ export function CursorLabel() {
     let active = false;
 
     const onMove = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return;
       moveX(e.clientX);
       moveY(e.clientY);
 

@@ -248,7 +248,7 @@ export function SecondaryProjects() {
                 </p>
               </div>
 
-              <div className="aspect-[16/10] w-full overflow-hidden rounded-2xl">
+              <div className="sm:aspect-[16/10] w-full overflow-hidden rounded-2xl">
                 <ArchitectureStage projectId={activeTool.id} compact />
               </div>
 

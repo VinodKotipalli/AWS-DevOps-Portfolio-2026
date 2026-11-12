@@ -216,11 +216,12 @@ export function Beyond() {
             <div className="beyond-photo relative aspect-[4/3] w-full overflow-hidden rounded-[20px] border border-border bg-card">
               <img
                 src={photos.beyondPhoto}
-                alt="Cloud infrastructure horizon"
+                alt="AWS Cloud and DevOps infrastructure topology"
                 width={1200}
                 height={900}
                 loading="lazy"
                 decoding="async"
+                referrerPolicy="no-referrer"
                 className="size-full object-cover object-center will-change-transform"
               />
               <div className="pointer-events-none absolute inset-x-4 bottom-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/15 bg-black/60 px-4 py-2.5 font-mono text-[11px] text-white/90 backdrop-blur-md">

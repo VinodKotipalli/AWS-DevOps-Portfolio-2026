@@ -86,7 +86,7 @@ export function ToolsPage() {
                 {tool.description}
               </p>
 
-              <div className="aspect-[16/10] w-full overflow-hidden rounded-2xl">
+              <div className="sm:aspect-[16/10] w-full overflow-hidden rounded-2xl">
                 <ArchitectureStage projectId={tool.id} compact />
               </div>
             </div>

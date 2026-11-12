@@ -1,5 +1,5 @@
 import { useRef, type ReactNode } from 'react';
-import { cinematic, gsap, useGSAP } from '../lib/gsap';
+import { canHoverAndFinePointer, cinematic, gsap, useGSAP } from '../lib/gsap';
 
 type MagneticProps = {
   children: ReactNode;
@@ -17,7 +17,7 @@ export function Magnetic({
   useGSAP(
     () => {
       const el = ref.current;
-      if (!el || !cinematic()) return;
+      if (!el || !cinematic() || !canHoverAndFinePointer()) return;
 
       // Magnetic motion: duration 0.8s, ease: elastic.out(1, 0.45), strength = 0.3
       const xTo = gsap.quickTo(el, 'x', {
@@ -30,6 +30,7 @@ export function Magnetic({
       });
 
       const onMove = (e: PointerEvent) => {
+        if (e.pointerType !== 'mouse') return;
         const rect = el.getBoundingClientRect();
         const cx = rect.left + rect.width / 2;
         const cy = rect.top + rect.height / 2;

@@ -120,7 +120,7 @@ export function ProjectDialog({
         </div>
 
         {/* Architecture Preview */}
-        <div className="aspect-[16/10] w-full overflow-hidden rounded-2xl border border-border">
+        <div className="sm:aspect-[16/10] w-full overflow-hidden rounded-2xl border border-border">
           <ArchitectureStage projectId={project.id} compact />
         </div>
 

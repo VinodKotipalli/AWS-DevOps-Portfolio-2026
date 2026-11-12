@@ -13,8 +13,8 @@ export function ArchitectureStage({
 }: StageProps) {
   return (
     <div
-      className={`relative w-full h-full overflow-hidden rounded-[inherit] bg-[#0c0f14] text-[#eef0f2] border border-white/15 shadow-2xl select-none flex flex-col justify-between ${
-        compact ? 'p-4 sm:p-5' : 'p-5 sm:p-7 md:p-8'
+      className={`relative w-full min-h-full sm:h-full overflow-hidden rounded-[inherit] bg-[#0c0f14] text-[#eef0f2] border border-white/15 shadow-2xl select-none flex flex-col justify-between ${
+        compact ? 'p-3.5 sm:p-5' : 'p-4 sm:p-7 md:p-8'
       } ${className}`}
     >
       {/* Subtle Blueprint Grid */}
@@ -289,7 +289,7 @@ export function ArchitectureStage({
       </div>
 
       {/* Bottom Caption */}
-      <div className="relative z-10 flex items-center justify-between pt-3 border-t border-white/10 text-[10px] sm:text-[11px] font-mono text-white/55">
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-white/10 text-[10px] sm:text-[11px] font-mono text-white/55">
         <span>Saivinod Kotipalli · AWS DevOps Architecture</span>
         <span>
           {projectId === 'aws-observability'

@@ -98,7 +98,7 @@ export function ProjectPage({ id }: ProjectPageProps) {
           </div>
 
           {/* Illustrative Architecture Stage */}
-          <div className="aspect-[16/9] max-h-[560px] w-full overflow-hidden rounded-[28px] border border-current/20 shadow-2xl">
+          <div className="sm:aspect-[16/9] sm:max-h-[560px] w-full overflow-hidden rounded-[24px] sm:rounded-[28px] border border-current/20 shadow-2xl">
             <ArchitectureStage projectId={project.id} />
           </div>
         </div>

@@ -8,6 +8,7 @@ import {
   type ProjectConfig,
 } from '../lib/content';
 import {
+  cinematic,
   gsap,
   motionOk,
   ScrollTrigger,
@@ -36,7 +37,7 @@ export function Work() {
       if (!section || !motionOk()) return;
 
       // Smooth fade-in and upward slide (y: 60, opacity: 0) as the Projects section enters the viewport
-      gsap.from(section, {
+      gsap.from('.work-intro-copy', {
         y: 60,
         opacity: 0,
         duration: 1,
@@ -49,11 +50,7 @@ export function Work() {
         },
       });
 
-      const isDesktopAperture =
-        typeof window !== 'undefined' &&
-        window.matchMedia(
-          '(min-width: 768px) and (min-height: 540px) and (prefers-reduced-motion: no-preference)'
-        ).matches;
+      const isDesktopAperture = cinematic();
 
       section.dataset.cinematic = isDesktopAperture ? 'true' : 'false';
 
@@ -327,7 +324,7 @@ export function Work() {
           - Sits directly over Project 01 (margin-bottom: -100svh on desktop)
             and opens a circular iris aperture from the raspberry dot into Project 01 with ZERO gap
          ==================================================================== */}
-      <div className="work-veil relative flex min-h-[58svh] md:h-svh w-full flex-col items-center justify-center overflow-hidden bg-background px-4 py-12 text-center sm:px-8">
+      <div className="work-veil relative flex min-h-[58svh] lg:h-svh w-full flex-col items-center justify-center overflow-hidden bg-background px-4 py-12 text-center sm:px-8">
         <div className="work-intro-copy relative z-10 flex flex-col items-center will-change-transform">
           <span className="work-intro-eyebrow mb-5 font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
             02 / Cloud &amp; DevOps Architecture Projects
@@ -365,8 +362,8 @@ export function Work() {
             key={project.id}
             data-index={index}
             style={{ zIndex: index + 1 }}
-            className={`work-chapter md:sticky md:top-0 min-h-svh w-full ${
-              index === 0 ? 'md:pb-[85svh]' : ''
+            className={`work-chapter lg:sticky lg:top-0 min-h-svh w-full ${
+              index === 0 ? 'lg:pb-[85svh]' : ''
             }`}
           >
             <div
@@ -490,7 +487,7 @@ export function Work() {
                   <Link
                     href={projectHash(project.id)}
                     data-cursor="View Case Study"
-                    className="chapter-art block aspect-[16/11] w-full rounded-[24px] sm:rounded-[30px] p-1.5 sm:p-2 bg-black/20 border border-current/20 shadow-2xl transition-transform duration-500 hover:scale-[1.015]"
+                    className="chapter-art block sm:aspect-[16/11] w-full rounded-[24px] sm:rounded-[30px] p-1.5 sm:p-2 bg-black/20 border border-current/20 shadow-2xl transition-transform duration-500 hover:scale-[1.015]"
                   >
                     <ArchitectureStage projectId={project.id} />
                   </Link>

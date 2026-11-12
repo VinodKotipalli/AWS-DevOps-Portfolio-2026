@@ -148,7 +148,7 @@ export function WorkPage() {
               <div className={idx === 0 ? 'lg:col-span-6' : ''}>
                 <Link
                   href={projectHash(project.id)}
-                  className="block aspect-[16/10] w-full overflow-hidden rounded-2xl border border-current/20 shadow-2xl"
+                  className="block sm:aspect-[16/10] w-full overflow-hidden rounded-2xl border border-current/20 shadow-2xl"
                 >
                   <ArchitectureStage projectId={project.id} compact={idx > 0} />
                 </Link>
