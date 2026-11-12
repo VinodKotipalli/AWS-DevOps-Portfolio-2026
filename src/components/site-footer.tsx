@@ -11,53 +11,185 @@ import { Magnetic } from './magnetic';
 
 const VORTEX_PHRASE = portfolioStatements.vortexPhrase;
 
+const MAX_NAME_LENGTH = 120;
+const MAX_EMAIL_LENGTH = 254;
+const MAX_SUBJECT_LENGTH = 180;
+const MAX_MESSAGE_LENGTH = 5000;
+
+const CLIENT_EMAIL_REGEX =
+  /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+
+function containsHeaderInjection(value: string): boolean {
+  if (/[\r\n\0]/.test(value) || /%0[ad]/i.test(value)) {
+    return true;
+  }
+  return /(?:^|\s)(?:bcc|cc|to|from|reply-to|content-type|mime-version|subject)\s*:/i.test(
+    value
+  );
+}
+
+type FormStatus =
+  | { type: 'idle' }
+  | { type: 'submitting' }
+  | { type: 'success'; message: string }
+  | { type: 'error'; message: string; field?: 'name' | 'email' | 'subject' | 'message' }
+  | { type: 'unconfigured'; message: string };
+
 export function SiteFooter() {
   const footerRef = useRef<HTMLElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const submittingLockRef = useRef(false);
 
   const [senderName, setSenderName] = useState('');
   const [senderEmail, setSenderEmail] = useState('');
   const [subject, setSubject] = useState('');
   const [message, setMessage] = useState('');
-  const [formError, setFormError] = useState<string | null>(null);
-  const [mailtoOpened, setMailtoOpened] = useState(false);
+  const [honeypot, setHoneypot] = useState('');
+  const [formStatus, setFormStatus] = useState<FormStatus>({ type: 'idle' });
 
-  const handleContactSubmit = (e: FormEvent<HTMLFormElement>) => {
+  const isSubmitting = formStatus.type === 'submitting';
+
+  const handleContactSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setFormError(null);
-    setMailtoOpened(false);
+
+    // Prevent duplicate submissions while a request is in flight
+    if (submittingLockRef.current || isSubmitting) return;
 
     const trimmedName = senderName.trim();
     const trimmedEmail = senderEmail.trim();
+    const trimmedSubject = subject.trim();
     const trimmedMessage = message.trim();
 
     if (!trimmedName) {
-      setFormError('Please enter your name.');
+      setFormStatus({
+        type: 'error',
+        field: 'name',
+        message: 'Please enter your name.',
+      });
       return;
     }
-    if (!trimmedEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      setFormError('Please enter a valid email address.');
+
+    if (trimmedName.length > MAX_NAME_LENGTH) {
+      setFormStatus({
+        type: 'error',
+        field: 'name',
+        message: `Name must be ${MAX_NAME_LENGTH} characters or fewer.`,
+      });
       return;
     }
+
+    if (
+      !trimmedEmail ||
+      trimmedEmail.length > MAX_EMAIL_LENGTH ||
+      !CLIENT_EMAIL_REGEX.test(trimmedEmail)
+    ) {
+      setFormStatus({
+        type: 'error',
+        field: 'email',
+        message: 'Please enter a valid email address.',
+      });
+      return;
+    }
+
+    if (trimmedSubject.length > MAX_SUBJECT_LENGTH) {
+      setFormStatus({
+        type: 'error',
+        field: 'subject',
+        message: `Subject must be ${MAX_SUBJECT_LENGTH} characters or fewer.`,
+      });
+      return;
+    }
+
     if (!trimmedMessage) {
-      setFormError('Please enter a short message.');
+      setFormStatus({
+        type: 'error',
+        field: 'message',
+        message: 'Please enter a message before sending.',
+      });
       return;
     }
 
-    const finalSubject =
-      subject.trim() || `Portfolio Inquiry from ${trimmedName}`;
-    const bodyLines = [
-      `Name: ${trimmedName}`,
-      `Email: ${trimmedEmail}`,
-      '',
-      trimmedMessage,
-    ];
-    const mailtoHref = `mailto:${personalInfo.email.address}?subject=${encodeURIComponent(
-      finalSubject
-    )}&body=${encodeURIComponent(bodyLines.join('\n'))}`;
+    if (trimmedMessage.length > MAX_MESSAGE_LENGTH) {
+      setFormStatus({
+        type: 'error',
+        field: 'message',
+        message: `Message must be ${MAX_MESSAGE_LENGTH} characters or fewer.`,
+      });
+      return;
+    }
 
-    window.location.href = mailtoHref;
-    setMailtoOpened(true);
+    if (
+      containsHeaderInjection(trimmedName) ||
+      containsHeaderInjection(trimmedEmail) ||
+      containsHeaderInjection(trimmedSubject)
+    ) {
+      setFormStatus({
+        type: 'error',
+        message: 'Invalid characters detected in contact fields.',
+      });
+      return;
+    }
+
+    submittingLockRef.current = true;
+    setFormStatus({ type: 'submitting' });
+
+    try {
+      const response = await fetch('/api/contact', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Accept: 'application/json',
+        },
+        body: JSON.stringify({
+          name: trimmedName,
+          email: trimmedEmail,
+          subject: trimmedSubject,
+          message: trimmedMessage,
+          website: honeypot,
+        }),
+      });
+
+      let data: { ok?: boolean; code?: string; message?: string; error?: string } = {};
+      try {
+        data = (await response.json()) as typeof data;
+      } catch {
+        data = {};
+      }
+
+      if (response.ok && data.ok) {
+        setSenderName('');
+        setSenderEmail('');
+        setSubject('');
+        setMessage('');
+        setHoneypot('');
+        setFormStatus({
+          type: 'success',
+          message: data.message || 'Your message has been submitted. Thank you!',
+        });
+      } else if (response.status === 503 || data.code === 'UNCONFIGURED') {
+        setFormStatus({
+          type: 'unconfigured',
+          message:
+            data.error ||
+            `Email delivery is not configured on the server yet. Please email ${personalInfo.email.address} directly.`,
+        });
+      } else {
+        setFormStatus({
+          type: 'error',
+          message:
+            data.error ||
+            'Unable to send your message right now. Please try again in a moment.',
+        });
+      }
+    } catch {
+      setFormStatus({
+        type: 'error',
+        message:
+          'Network error while sending your message. Please check your connection and try again.',
+      });
+    } finally {
+      submittingLockRef.current = false;
+    }
   };
 
   useEffect(() => {
@@ -311,25 +443,40 @@ export function SiteFooter() {
             </p>
           </div>
 
-          {/* Right Column: Keyboard- & Mobile-Friendly Contact Form (Honest mailto: composer) */}
+          {/* Right Column: Keyboard- & Mobile-Friendly Contact Form (Gmail SMTP /api/contact POST) */}
           <div className="lg:col-span-5">
             <form
+              action="/api/contact"
+              method="POST"
               onSubmit={handleContactSubmit}
               noValidate
-              aria-label="Compose an email to Saivinod Kotipalli"
+              aria-label="Send a message to Saivinod Kotipalli"
               className="rounded-3xl border border-border bg-card/90 p-5 sm:p-7 shadow-xl backdrop-blur-md space-y-4"
             >
               <div className="space-y-1">
                 <h3 className="font-display text-xl font-extrabold tracking-[-0.025em] text-foreground">
-                  Quick message composer
+                  Send me a message
                 </h3>
                 <p className="font-sans text-xs text-muted-foreground">
-                  Opens your default email client addressed to{' '}
-                  <span className="font-mono text-foreground">
-                    {personalInfo.email.address}
-                  </span>
-                  .
+                  Send a message directly here, and I’ll get back to you by
+                  email.
                 </p>
+              </div>
+
+              {/* Honeypot Field for Spam Protection */}
+              <div aria-hidden="true" className="sr-only">
+                <label htmlFor="contact-website">
+                  Do not fill this field if you are human
+                </label>
+                <input
+                  id="contact-website"
+                  name="website"
+                  type="text"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                />
               </div>
 
               <div className="space-y-1.5">
@@ -346,10 +493,17 @@ export function SiteFooter() {
                   autoComplete="name"
                   enterKeyHint="next"
                   required
+                  maxLength={MAX_NAME_LENGTH}
+                  aria-invalid={
+                    formStatus.type === 'error' && formStatus.field === 'name'
+                      ? true
+                      : undefined
+                  }
+                  disabled={isSubmitting}
                   value={senderName}
                   onChange={(e) => setSenderName(e.target.value)}
                   placeholder="e.g., Priya Sharma"
-                  className="min-h-12 w-full rounded-2xl border border-input bg-background px-4 py-3 font-sans text-base text-foreground placeholder:text-muted-foreground focus:border-primary scroll-mb-28"
+                  className="min-h-12 w-full rounded-2xl border border-input bg-background px-4 py-3 font-sans text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:opacity-60 scroll-mb-28"
                 />
               </div>
 
@@ -368,10 +522,17 @@ export function SiteFooter() {
                   autoComplete="email"
                   enterKeyHint="next"
                   required
+                  maxLength={MAX_EMAIL_LENGTH}
+                  aria-invalid={
+                    formStatus.type === 'error' && formStatus.field === 'email'
+                      ? true
+                      : undefined
+                  }
+                  disabled={isSubmitting}
                   value={senderEmail}
                   onChange={(e) => setSenderEmail(e.target.value)}
                   placeholder="name@company.com"
-                  className="min-h-12 w-full rounded-2xl border border-input bg-background px-4 py-3 font-sans text-base text-foreground placeholder:text-muted-foreground focus:border-primary scroll-mb-28"
+                  className="min-h-12 w-full rounded-2xl border border-input bg-background px-4 py-3 font-sans text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:opacity-60 scroll-mb-28"
                 />
               </div>
 
@@ -387,10 +548,17 @@ export function SiteFooter() {
                   name="subject"
                   type="text"
                   enterKeyHint="next"
+                  maxLength={MAX_SUBJECT_LENGTH}
+                  aria-invalid={
+                    formStatus.type === 'error' && formStatus.field === 'subject'
+                      ? true
+                      : undefined
+                  }
+                  disabled={isSubmitting}
                   value={subject}
                   onChange={(e) => setSubject(e.target.value)}
                   placeholder="AWS / DevOps / SRE Opportunity"
-                  className="min-h-12 w-full rounded-2xl border border-input bg-background px-4 py-3 font-sans text-base text-foreground placeholder:text-muted-foreground focus:border-primary scroll-mb-28"
+                  className="min-h-12 w-full rounded-2xl border border-input bg-background px-4 py-3 font-sans text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:opacity-60 scroll-mb-28"
                 />
               </div>
 
@@ -407,38 +575,57 @@ export function SiteFooter() {
                   rows={3}
                   enterKeyHint="send"
                   required
+                  maxLength={MAX_MESSAGE_LENGTH}
+                  aria-invalid={
+                    formStatus.type === 'error' && formStatus.field === 'message'
+                      ? true
+                      : undefined
+                  }
+                  disabled={isSubmitting}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder="Share role details, project requirements, or questions..."
-                  className="w-full rounded-2xl border border-input bg-background px-4 py-3 font-sans text-base text-foreground placeholder:text-muted-foreground focus:border-primary scroll-mb-28"
+                  className="w-full rounded-2xl border border-input bg-background px-4 py-3 font-sans text-base text-foreground placeholder:text-muted-foreground focus:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 disabled:opacity-60 scroll-mb-28"
                 />
               </div>
 
-              {formError && (
-                <p
-                  role="alert"
-                  className="rounded-xl border border-destructive/40 bg-destructive/10 px-3.5 py-2 font-mono text-xs text-destructive"
-                >
-                  {formError}
-                </p>
-              )}
+              {/* Accessible Status / Alert Live Region */}
+              <div aria-live="polite" aria-atomic="true">
+                {formStatus.type === 'error' && (
+                  <p
+                    role="alert"
+                    className="rounded-xl border border-destructive/40 bg-destructive/10 px-3.5 py-2.5 font-mono text-xs text-destructive"
+                  >
+                    {formStatus.message}
+                  </p>
+                )}
 
-              {mailtoOpened && !formError && (
-                <p
-                  role="status"
-                  className="rounded-xl border border-primary/35 bg-primary/10 px-3.5 py-2 font-mono text-xs text-foreground"
-                >
-                  Opening your email client with your pre-filled message to{' '}
-                  {personalInfo.email.address}.
-                </p>
-              )}
+                {formStatus.type === 'unconfigured' && (
+                  <p
+                    role="alert"
+                    className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-3.5 py-2.5 font-mono text-xs text-foreground"
+                  >
+                    {formStatus.message}
+                  </p>
+                )}
+
+                {formStatus.type === 'success' && (
+                  <p
+                    role="status"
+                    className="rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-3.5 py-2.5 font-mono text-xs text-foreground"
+                  >
+                    {formStatus.message}
+                  </p>
+                )}
+              </div>
 
               <button
                 type="submit"
-                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-6 py-3.5 font-display text-sm font-bold text-primary-foreground shadow-md transition-transform hover:-translate-y-0.5 cursor-pointer"
+                disabled={isSubmitting}
+                aria-busy={isSubmitting}
+                className="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-primary px-6 py-3.5 font-display text-sm font-bold text-primary-foreground shadow-md transition-transform hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-65 cursor-pointer"
               >
-                <span>Compose Email in Mail App</span>
-                <span aria-hidden="true">↗</span>
+                <span>{isSubmitting ? 'Sending…' : 'Send Message'}</span>
               </button>
             </form>
           </div>

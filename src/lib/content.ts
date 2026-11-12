@@ -74,8 +74,7 @@ export const photos = {
   useFlattenedImageOnly: false,
   inlineChip: null as string | null,
   aboutPortrait: null as string | null,
-  beyondPhoto:
-    '/src/assets/images/cloud_infrastructure_topology_1794516625884.jpg',
+  beyondPhoto: null as string | null,
 };
 
 export const heroConfig = {

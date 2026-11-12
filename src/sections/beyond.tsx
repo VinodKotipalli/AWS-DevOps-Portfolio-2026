@@ -1,7 +1,6 @@
 import { useRef, useState } from 'react';
 import {
   certifications,
-  photos,
   portfolioStatements,
 } from '../lib/content';
 import { gsap, motionOk, ScrollTrigger, useGSAP } from '../lib/gsap';
@@ -29,43 +28,7 @@ export function Beyond() {
         },
       });
 
-      // 2. Image Crop Reveal: clip-path inset(22% 12% 22% 12% round 20px) -> inset(0% 0% 0% 0% round 20px) and scale 1.3 -> 1, scrub: 0.8
-      const photo = section.querySelector<HTMLElement>('.beyond-photo');
-      const img = photo?.querySelector('img');
-
-      if (photo && img) {
-        gsap.fromTo(
-          photo,
-          { clipPath: 'inset(22% 12% 22% 12% round 20px)' },
-          {
-            clipPath: 'inset(0% 0% 0% 0% round 20px)',
-            ease: 'none',
-            scrollTrigger: {
-              trigger: photo,
-              start: 'top 88%',
-              end: 'top 30%',
-              scrub: 0.8,
-            },
-          }
-        );
-
-        gsap.fromTo(
-          img,
-          { scale: 1.3 },
-          {
-            scale: 1,
-            ease: 'none',
-            scrollTrigger: {
-              trigger: photo,
-              start: 'top 88%',
-              end: 'top 30%',
-              scrub: 0.8,
-            },
-          }
-        );
-      }
-
-      // 3. Portfolio vision statements entrance
+      // 2. Portfolio vision statements entrance
       gsap.from('.interest', {
         y: 40,
         opacity: 0,
@@ -191,8 +154,7 @@ export function Beyond() {
       </div>
 
       {/* ====================================================================
-          ENGINEERING VISION & IMAGE CROP REVEAL STAGE
-          (Source-provided statements: Architecting Tomorrow, Limitless Scalability, Continuous Evolution)
+          07 / ENGINEERING PHILOSOPHY — FULL-WIDTH 4-COLUMN VISION GRID
          ==================================================================== */}
       <div id="beyond-work" className="mt-28 pt-20 border-t border-border">
         <div className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
@@ -205,66 +167,57 @@ export function Beyond() {
             </h3>
           </div>
 
-          <p className="max-w-md font-sans text-sm sm:text-base text-muted-foreground">
-            {portfolioStatements.closingLine}
-          </p>
-        </div>
-
-        <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-12 lg:gap-12">
-          {/* Left Image Crop Reveal Frame */}
-          <div className="lg:col-span-6">
-            <div className="beyond-photo relative aspect-[4/3] w-full overflow-hidden rounded-[20px] border border-border bg-card">
-              <img
-                src={photos.beyondPhoto}
-                alt="AWS Cloud and DevOps infrastructure topology"
-                width={1200}
-                height={900}
-                loading="lazy"
-                decoding="async"
-                referrerPolicy="no-referrer"
-                className="size-full object-cover object-center will-change-transform"
-              />
-              <div className="pointer-events-none absolute inset-x-4 bottom-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/15 bg-black/60 px-4 py-2.5 font-mono text-[11px] text-white/90 backdrop-blur-md">
-                <span>Engineered for scale · Built for the future</span>
-                <span className="text-[#ff8aa3]">99.9% Uptime Target</span>
-              </div>
+          <div className="space-y-2 md:text-right">
+            <p className="max-w-md font-sans text-sm sm:text-base text-muted-foreground">
+              {portfolioStatements.closingLine}
+            </p>
+            <div className="inline-flex flex-wrap items-center gap-3 rounded-full border border-border bg-card/80 px-4 py-2 font-mono text-[11px] text-muted-foreground">
+              <span>Engineered for scale · Built for the future</span>
+              <span aria-hidden="true">·</span>
+              <span className="font-semibold text-primary">
+                99.9% Uptime Target
+              </span>
             </div>
           </div>
+        </div>
 
-          {/* Right Vision Grid (Source-provided statements) */}
-          <div className="interests lg:col-span-6 grid grid-cols-1 gap-6 sm:grid-cols-2">
-            {portfolioStatements.pillars.map((pillar, idx) => (
-              <article
-                key={pillar.title}
-                className="interest rounded-3xl border border-border bg-card/60 p-6 sm:p-7 space-y-3"
-              >
+        {/* Full-Width Balanced 4-Card Grid (1 col phone -> 2 col tablet -> 4 col desktop) */}
+        <div className="interests grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {portfolioStatements.pillars.map((pillar, idx) => (
+            <article
+              key={pillar.title}
+              className="interest flex flex-col justify-between rounded-3xl border border-border bg-card/60 p-6 sm:p-7 space-y-4 transition-colors hover:border-primary/40"
+            >
+              <div className="space-y-3">
                 <div className="flex items-center justify-between font-mono text-xs text-muted-foreground">
                   <span>0{idx + 1}</span>
                   <span className="text-primary">Principle</span>
                 </div>
-                <h4 className="font-display text-xl font-extrabold tracking-[-0.025em] text-foreground">
+                <h4 className="font-display text-xl sm:text-2xl font-extrabold tracking-[-0.025em] text-foreground">
                   {pillar.title}
                 </h4>
                 <p className="font-sans text-sm leading-relaxed text-muted-foreground">
                   {pillar.text}
                 </p>
-              </article>
-            ))}
+              </div>
+            </article>
+          ))}
 
-            <article className="interest rounded-3xl border border-primary/30 bg-primary/8 p-6 sm:p-7 space-y-3">
+          <article className="interest flex flex-col justify-between rounded-3xl border border-primary/30 bg-primary/8 p-6 sm:p-7 space-y-4 transition-colors hover:border-primary/60">
+            <div className="space-y-3">
               <div className="flex items-center justify-between font-mono text-xs text-primary">
                 <span>04</span>
                 <span>Mission</span>
               </div>
-              <h4 className="font-display text-xl font-extrabold tracking-[-0.025em] text-foreground">
+              <h4 className="font-display text-xl sm:text-2xl font-extrabold tracking-[-0.025em] text-foreground">
                 Resilient Automation
               </h4>
               <p className="font-sans text-sm leading-relaxed text-muted-foreground">
                 Turning bold visions into resilient, automated systems.{' '}
                 {portfolioStatements.closingLine}
               </p>
-            </article>
-          </div>
+            </div>
+          </article>
         </div>
       </div>
     </section>
