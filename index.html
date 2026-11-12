@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Saivinod Kotipalli | AWS DevOps Engineer</title>
+    <meta name="description" content="Personal portfolio of Saivinod Kotipalli, AWS DevOps Engineer — featuring scroll-choreographed architecture case studies, cloud automation tools, and infrastructure engineering." />
+    <meta property="og:title" content="Saivinod Kotipalli | AWS DevOps Engineer" />
+    <meta property="og:description" content="Personal portfolio of Saivinod Kotipalli, AWS DevOps Engineer — featuring scroll-choreographed architecture case studies, cloud automation tools, and infrastructure engineering." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="theme-color" content="#eef0f2" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <script>
+      (function () {
+        try {
+          var saved = localStorage.getItem('portfolio-theme');
+          var theme = saved === 'light' || saved === 'dark' ? saved : 'light';
+          document.documentElement.dataset.theme = theme;
+          document.documentElement.classList.toggle('dark', theme === 'dark');
+          var meta = document.querySelector('meta[name="theme-color"]');
+          if (meta) meta.content = theme === 'dark' ? '#141414' : '#eef0f2';
+        } catch (e) {}
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
