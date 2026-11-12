@@ -103,11 +103,11 @@ export function ToolsPage() {
                 ))}
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Link
                   href={projectHash(tool.id)}
                   style={{ backgroundColor: tool.ink, color: tool.color }}
-                  className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 font-display text-xs font-bold uppercase tracking-wider shadow-md"
+                  className="inline-flex min-h-12 items-center gap-2 rounded-full px-5 py-3 font-display text-xs font-bold uppercase tracking-wider shadow-md"
                 >
                   <span>View Case Study</span>
                   <span aria-hidden="true">→</span>
@@ -116,7 +116,7 @@ export function ToolsPage() {
                   href={personalInfo.github}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1 rounded-full border border-current/30 px-4 py-2.5 font-mono text-xs"
+                  className="inline-flex min-h-12 items-center gap-1 rounded-full border border-current/30 px-4 py-3 font-mono text-xs"
                 >
                   <span>GitHub ↗</span>
                 </a>

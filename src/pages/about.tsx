@@ -81,13 +81,13 @@ export function AboutPage() {
           <div className="about-reveal flex flex-wrap gap-3 pt-3">
             <Link
               href="#resume"
-              className="rounded-full bg-primary px-6 py-3 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground"
+              className="inline-flex min-h-12 items-center rounded-full bg-primary px-6 py-3 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground"
             >
               View Full Resume →
             </Link>
             <Link
               href="#work"
-              className="rounded-full border border-border bg-card px-6 py-3 font-display text-xs font-bold uppercase tracking-wider text-foreground"
+              className="inline-flex min-h-12 items-center rounded-full border border-border bg-card px-6 py-3 font-display text-xs font-bold uppercase tracking-wider text-foreground"
             >
               All 5 Projects
             </Link>

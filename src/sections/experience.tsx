@@ -2,7 +2,6 @@ import { useRef, useState } from 'react';
 import {
   education,
   experience,
-  personalInfo,
   skillCategories,
   toolkit,
 } from '../lib/content';
@@ -18,6 +17,20 @@ export function Experience() {
     () => {
       const section = root.current;
       if (!section || !motionOk()) return;
+
+      // Smooth fade-in and upward slide (y: 60, opacity: 0) as the Experience section enters the viewport
+      gsap.from(section, {
+        y: 60,
+        opacity: 0,
+        duration: 1,
+        ease: 'power3.out',
+        clearProps: 'transform',
+        scrollTrigger: {
+          trigger: section,
+          start: 'top 85%',
+          toggleActions: 'play none none reverse',
+        },
+      });
 
       // 1. Experience row animation: yPercent: 40 -> 0, opacity: 0 -> 1, duration: 1s, stagger: 0.1s, ease: expo.out, start: top 82%
       gsap.from('.job', {
@@ -119,7 +132,7 @@ export function Experience() {
           <div className="flex flex-wrap items-center gap-3">
             <Link
               href="#resume"
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground transition-transform hover:-translate-y-0.5"
+              className="inline-flex min-h-12 items-center gap-2 rounded-full bg-primary px-6 py-3 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground transition-transform hover:-translate-y-0.5"
             >
               <span>Full Resume View</span>
               <span aria-hidden="true">→</span>
@@ -128,7 +141,7 @@ export function Experience() {
               <button
                 type="button"
                 onClick={downloadResumePdf}
-                className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-3 font-display text-xs font-bold uppercase tracking-wider text-foreground transition-colors hover:border-primary hover:text-primary cursor-pointer"
+                className="inline-flex min-h-12 items-center gap-2 rounded-full border border-border bg-card px-5 py-3 font-display text-xs font-bold uppercase tracking-wider text-foreground transition-colors hover:border-primary hover:text-primary cursor-pointer"
               >
                 <span>Download PDF</span>
                 <span aria-hidden="true">↓</span>
@@ -170,14 +183,15 @@ export function Experience() {
 
                 {/* All 10 Responsibilities and Deliverables */}
                 <div className="lg:col-span-8 space-y-5">
-                  <div className="flex items-center justify-between border-b border-border/70 pb-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 pb-3">
                     <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">
                       Responsibilities &amp; Deliverables ({job.highlights.length})
                     </span>
                     <button
                       type="button"
                       onClick={() => setShowAllBullets((v) => !v)}
-                      className="font-mono text-xs font-semibold text-primary hover:underline cursor-pointer"
+                      aria-expanded={showAllBullets}
+                      className="inline-flex min-h-12 items-center justify-center rounded-full border border-border bg-card px-4 py-2 font-mono text-xs font-semibold text-primary transition-colors hover:border-primary cursor-pointer"
                     >
                       {showAllBullets
                         ? 'Compact View (Top 5)'

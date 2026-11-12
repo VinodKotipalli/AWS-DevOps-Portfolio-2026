@@ -9,8 +9,9 @@ gsap.defaults({ ease: 'power3.out' });
 export { gsap, ScrollTrigger, SplitText, useGSAP };
 
 export const MOTION_OK_QUERY = '(prefers-reduced-motion: no-preference)';
+export const HOVER_FINE_QUERY = '(hover: hover) and (pointer: fine)';
 export const CINEMATIC_QUERY =
-  '(min-width: 768px) and (min-height: 560px) and (prefers-reduced-motion: no-preference)';
+  '(min-width: 1024px) and (min-height: 600px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)';
 
 export function prefersReducedMotion(): boolean {
   return (
@@ -23,6 +24,13 @@ export function motionOk(): boolean {
   return (
     typeof window !== 'undefined' &&
     window.matchMedia(MOTION_OK_QUERY).matches
+  );
+}
+
+export function canHoverAndFinePointer(): boolean {
+  return (
+    typeof window !== 'undefined' &&
+    window.matchMedia(HOVER_FINE_QUERY).matches
   );
 }
 

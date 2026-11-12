@@ -1,6 +1,7 @@
 import { useRef, type MouseEvent } from 'react';
 import { heroConfig, personalInfo, photos } from '../lib/content';
 import {
+  canHoverAndFinePointer,
   cinematic,
   gsap,
   motionOk,
@@ -9,6 +10,10 @@ import {
   SplitText,
   useGSAP,
 } from '../lib/gsap';
+import {
+  hasHeroEntranceStarted,
+  PRELOADER_HERO_START_EVENT,
+} from '../lib/preloader';
 
 export function Hero() {
   const root = useRef<HTMLElement>(null);
@@ -37,6 +42,9 @@ export function Hero() {
       const section = root.current;
       if (!section) return;
 
+      const stageContainer = section.querySelector<HTMLElement>(
+        '.hero-stage-container'
+      );
       const bgLayer = section.querySelector<HTMLElement>('.hero-bg-layer');
       const stageGlow = section.querySelector<HTMLElement>('.hero-stage-glow');
       const headingWords = gsap.utils.toArray<HTMLElement>(
@@ -70,7 +78,10 @@ export function Hero() {
         return;
       }
 
-      // Split "AWS DevOps Engineer" into characters for a crisp staggered character reveal + wave animation
+      const isFineDesktop = canHoverAndFinePointer();
+      const waitForPreloader = !hasHeroEntranceStarted();
+
+      // Split "AWS DevOps Engineer" into characters for a crisp staggered reveal
       const roleSplit = roleTitleEl
         ? new SplitText(roleTitleEl, {
             type: 'words,chars',
@@ -80,23 +91,42 @@ export function Hero() {
         : null;
 
       // Initial states for the coordinated entrance sequence
+      if (waitForPreloader && stageContainer) {
+        gsap.set(stageContainer, { opacity: 0.01, y: 12 });
+      }
       if (bgLayer) gsap.set(bgLayer, { opacity: 0 });
       if (headingWords.length) gsap.set(headingWords, { yPercent: 115 });
       if (roleSplit?.chars.length) {
-        gsap.set(roleSplit.chars, { yPercent: 130, rotateZ: 4, opacity: 0 });
+        gsap.set(roleSplit.chars, { yPercent: 120, rotateZ: 3, opacity: 0 });
       }
       if (roleAccentLine) {
         gsap.set(roleAccentLine, { scaleX: 0, transformOrigin: 'left center' });
       }
       if (specialtyPills.length) {
-        gsap.set(specialtyPills, { opacity: 0, y: 14, scale: 0.94 });
+        gsap.set(specialtyPills, { opacity: 0, y: 12, scale: 0.96 });
       }
-      if (stageGlow) gsap.set(stageGlow, { opacity: 0, y: 20, scale: 1.025 });
-      if (introItems.length) gsap.set(introItems, { opacity: 0, y: 18 });
+      if (stageGlow) gsap.set(stageGlow, { opacity: 0, y: 16, scale: 1.02 });
+      if (introItems.length) gsap.set(introItems, { opacity: 0, y: 16 });
 
       const entranceTl = gsap.timeline({
+        paused: waitForPreloader,
         defaults: { ease: 'power3.out' },
       });
+
+      // If transitioning from the preloader curtain exit, fade in and rise by 12px
+      if (waitForPreloader && stageContainer) {
+        entranceTl.to(
+          stageContainer,
+          {
+            opacity: 1,
+            y: 0,
+            duration: 0.55,
+            ease: 'power3.out',
+            clearProps: 'transform,opacity',
+          },
+          0
+        );
+      }
 
       // 1. Fade in the forest-green & near-black background over 700ms
       if (bgLayer) {
@@ -140,7 +170,7 @@ export function Hero() {
         );
       }
 
-      // 4. Reveal "AWS DevOps Engineer" characters with staggered spring/expo lift + golden rule draw
+      // 4. Reveal "AWS DevOps Engineer" characters with staggered lift + golden rule draw
       if (roleAccentLine) {
         entranceTl.to(
           roleAccentLine,
@@ -160,8 +190,8 @@ export function Hero() {
             yPercent: 0,
             rotateZ: 0,
             opacity: 1,
-            duration: 0.8,
-            stagger: 0.028,
+            duration: 0.75,
+            stagger: 0.024,
             ease: 'expo.out',
           },
           0.46
@@ -175,11 +205,11 @@ export function Hero() {
             opacity: 1,
             y: 0,
             scale: 1,
-            duration: 0.55,
-            stagger: 0.06,
-            ease: 'back.out(1.6)',
+            duration: 0.5,
+            stagger: 0.05,
+            ease: 'back.out(1.4)',
           },
-          0.82
+          0.78
         );
       }
 
@@ -194,11 +224,11 @@ export function Hero() {
             stagger: 0.1,
             ease: 'power3.out',
           },
-          0.78
+          0.76
         );
       }
 
-      // Continuous subtle golden shimmer & character wave on "AWS DevOps Engineer"
+      // Continuous subtle golden shimmer on "AWS DevOps Engineer"
       if (roleGlowSweep) {
         gsap.fromTo(
           roleGlowSweep,
@@ -208,13 +238,14 @@ export function Hero() {
             duration: 3.8,
             ease: 'power2.inOut',
             repeat: -1,
-            repeatDelay: 2.2,
+            repeatDelay: 2.5,
             delay: 1.8,
           }
         );
       }
 
-      if (roleSplit?.chars.length) {
+      // Only run continuous per-character textShadow wave & ambient streak animations on desktop/fine-pointer devices to keep Android mobile GPU light
+      if (isFineDesktop && roleSplit?.chars.length) {
         gsap.to(roleSplit.chars, {
           color: '#ffe29a',
           textShadow: '0 0 18px rgba(243, 181, 74, 0.55)',
@@ -230,21 +261,22 @@ export function Hero() {
         });
       }
 
-      // Ambient Effect: Faint diagonal golden light streaks moving very slowly in the background
-      streaks.forEach((streak, idx) => {
-        gsap.to(streak, {
-          xPercent: idx % 2 === 0 ? 7 : -7,
-          yPercent: idx % 2 === 0 ? 5 : -5,
-          opacity: idx % 2 === 0 ? 0.36 : 0.22,
-          duration: 12 + idx * 3,
-          ease: 'sine.inOut',
-          repeat: -1,
-          yoyo: true,
+      if (isFineDesktop) {
+        streaks.forEach((streak, idx) => {
+          gsap.to(streak, {
+            xPercent: idx % 2 === 0 ? 7 : -7,
+            yPercent: idx % 2 === 0 ? 5 : -5,
+            opacity: idx % 2 === 0 ? 0.36 : 0.22,
+            duration: 12 + idx * 3,
+            ease: 'sine.inOut',
+            repeat: -1,
+            yoyo: true,
+          });
         });
-      });
+      }
 
       // Native Scroll Shift: subtle background shift as the visitor scrolls past the hero
-      if (bgLayer) {
+      if (bgLayer && isFineDesktop) {
         gsap.to(bgLayer, {
           yPercent: 8,
           ease: 'none',
@@ -257,13 +289,10 @@ export function Hero() {
         });
       }
 
-      // Desktop Pointer Parallax: background movement up to 6px and heading movement up to 10px
+      // Desktop Pointer Parallax: ONLY enabled on devices supporting (hover: hover) and (pointer: fine)
       let cleanupParallax: (() => void) | undefined;
-      const hasFinePointer =
-        typeof window !== 'undefined' &&
-        window.matchMedia('(pointer: fine)').matches;
 
-      if (cinematic() && hasFinePointer) {
+      if (cinematic() && isFineDesktop) {
         const bgParallaxEl = section.querySelector<HTMLElement>(
           '.hero-bg-parallax'
         );
@@ -305,7 +334,7 @@ export function Hero() {
             : null;
 
           const onPointerMove = (e: PointerEvent) => {
-            if (e.pointerType === 'touch') return;
+            if (e.pointerType !== 'mouse' && e.pointerType !== 'pen') return;
             const nx = (e.clientX / window.innerWidth - 0.5) * 2;
             const ny = (e.clientY / window.innerHeight - 0.5) * 2;
             moveBgX(nx * 6);
@@ -335,7 +364,23 @@ export function Hero() {
         }
       }
 
+      const onPreloaderStartHero = () => {
+        entranceTl.play(0);
+      };
+
+      if (waitForPreloader) {
+        window.addEventListener(
+          PRELOADER_HERO_START_EVENT,
+          onPreloaderStartHero,
+          { once: true }
+        );
+      }
+
       return () => {
+        window.removeEventListener(
+          PRELOADER_HERO_START_EVENT,
+          onPreloaderStartHero
+        );
         cleanupParallax?.();
         roleSplit?.revert();
         ScrollTrigger.refresh();
@@ -416,20 +461,20 @@ export function Hero() {
       </div>
 
       {/* ====================================================================
-          MAIN HERO CONTENT STAGE
+          MAIN HERO CONTENT STAGE (Mobile-First 320px -> 1920px+ Desktop)
          ==================================================================== */}
-      <div className="relative z-10 mx-auto flex min-h-svh w-full max-w-[1440px] flex-col justify-between px-5 pt-24 pb-10 sm:px-8 sm:pt-28 sm:pb-14 lg:px-14 lg:pt-28 lg:pb-16">
+      <div className="hero-stage-container relative z-10 mx-auto flex min-h-svh w-full max-w-[1440px] flex-col justify-between px-4 pt-22 pb-8 sm:px-8 sm:pt-28 sm:pb-12 lg:px-14 lg:pt-28 lg:pb-16 will-change-transform">
         {/* TOP: OVERSIZED "SAIVINOD KOTIPALLI" HEADING + ANIMATED "AWS DEVOPS ENGINEER" LOCKUP */}
-        <div className="space-y-5 sm:space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <div className="hero-heading-parallax relative z-10 select-none">
             <h1
               aria-label={heroConfig.headingFull}
-              className="font-display font-black uppercase tracking-[-0.045em] text-[#f5f2eb] leading-[0.88] text-[clamp(2.6rem,7.5vw,7.8rem)] flex flex-wrap items-baseline justify-start gap-x-[0.26em] gap-y-1"
+              className="font-display font-black uppercase tracking-[-0.045em] text-[#f5f2eb] leading-[0.9] text-[clamp(2rem,7.2vw,7.8rem)] flex flex-wrap items-baseline justify-start gap-x-[0.24em] gap-y-1"
             >
               {heroConfig.headingWords.map((word) => (
                 <span
                   key={word}
-                  className="inline-block overflow-hidden py-[0.04em]"
+                  className="inline-block overflow-hidden py-[0.04em] max-w-full"
                 >
                   <span className="hero-heading-word-inner inline-block will-change-transform">
                     {word}
@@ -440,20 +485,20 @@ export function Hero() {
           </div>
 
           {/* PROMINENT ANIMATED "AWS DEVOPS ENGINEER" TITLE STAGE DIRECTLY BELOW NAME */}
-          <div className="hero-role-parallax relative z-20 space-y-4">
-            <div className="relative inline-flex flex-col">
-              <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+          <div className="hero-role-parallax relative z-20 space-y-3.5 sm:space-y-4">
+            <div className="relative inline-flex max-w-full flex-col">
+              <div className="flex flex-wrap items-center gap-2.5 sm:gap-4">
                 {/* Pulsing Golden Status Beacon */}
                 <span
                   aria-hidden="true"
-                  className="relative flex size-3.5 items-center justify-center"
+                  className="relative flex size-3 sm:size-3.5 shrink-0 items-center justify-center"
                 >
                   <span className="absolute inline-flex size-full animate-ping rounded-full bg-[#f3b54a] opacity-65" />
-                  <span className="relative inline-flex size-2.5 rounded-full bg-[#f3b54a] shadow-[0_0_12px_#f3b54a]" />
+                  <span className="relative inline-flex size-2 sm:size-2.5 rounded-full bg-[#f3b54a] shadow-[0_0_12px_#f3b54a]" />
                 </span>
 
                 {/* Character-Animated "AWS DevOps Engineer" Display Subtitle */}
-                <p className="hero-role-headline font-display text-[clamp(1.6rem,4.2vw,3.9rem)] font-extrabold tracking-[-0.03em] text-[#f3b54a] leading-[1.05]">
+                <p className="hero-role-headline font-display text-[clamp(1.35rem,4.2vw,3.9rem)] font-extrabold tracking-[-0.03em] text-[#f3b54a] leading-[1.08]">
                   {heroConfig.role}
                 </p>
               </div>
@@ -468,17 +513,17 @@ export function Hero() {
             </div>
 
             {/* Animated Specialty Pills */}
-            <div className="flex flex-wrap items-center gap-2 pt-1">
+            <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 pt-0.5">
               {heroConfig.specialties.map((spec) => (
                 <span
                   key={spec}
-                  className="hero-specialty-pill inline-flex items-center gap-1.5 rounded-full border border-[#f3b54a]/30 bg-[#091c12]/80 px-3.5 py-1.5 font-mono text-[11px] sm:text-xs font-medium tracking-wider text-[#f5f2eb]/90 backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:border-[#f3b54a] hover:bg-[#f3b54a]/15 hover:text-[#ffe29a]"
+                  className="hero-specialty-pill inline-flex items-center gap-1.5 rounded-full border border-[#f3b54a]/30 bg-[#091c12]/80 px-3 py-1.5 font-mono text-[11px] sm:text-xs font-medium tracking-wider text-[#f5f2eb]/90 backdrop-blur-md transition-all duration-300 hover:-translate-y-0.5 hover:border-[#f3b54a] hover:bg-[#f3b54a]/15 hover:text-[#ffe29a]"
                 >
                   <span
                     aria-hidden="true"
-                    className="size-1.5 rounded-full bg-[#f3b54a]"
+                    className="size-1.5 shrink-0 rounded-full bg-[#f3b54a]"
                   />
-                  {spec}
+                  <span>{spec}</span>
                 </span>
               ))}
             </div>
@@ -487,7 +532,7 @@ export function Hero() {
 
         {/* OPTIONAL USER PORTRAIT SLOT (Only rendered if photos.heroPortrait is set in src/lib/content.ts) */}
         {photos.heroPortrait && (
-          <div className="hero-stage-glow relative z-20 my-6 md:my-0 md:absolute md:bottom-0 md:left-[56%] md:-translate-x-1/2 w-full max-w-[360px] sm:max-w-[420px] md:max-w-[480px] lg:max-w-[540px] mx-auto pointer-events-none">
+          <div className="hero-stage-glow relative z-20 my-6 md:my-0 md:absolute md:bottom-0 md:left-[56%] md:-translate-x-1/2 w-full max-w-[320px] sm:max-w-[400px] md:max-w-[460px] lg:max-w-[520px] mx-auto pointer-events-none">
             <div className="relative aspect-[3/4] w-full overflow-hidden">
               <img
                 src={photos.heroPortrait}
@@ -507,15 +552,15 @@ export function Hero() {
         )}
 
         {/* BOTTOM ROW: LOWER-LEFT DESCRIPTION & "VIEW MY WORK" CTA + RIGHT METADATA */}
-        <div className="relative z-30 mt-auto flex flex-col justify-between gap-8 pt-10 md:flex-row md:items-end">
+        <div className="relative z-30 mt-auto flex flex-col justify-between gap-6 pt-8 md:flex-row md:items-end">
           {/* Lower-Left Introduction Cluster */}
-          <div className="max-w-lg space-y-6">
-            <div className="space-y-2.5">
-              <p className="hero-intro-item font-mono text-xs sm:text-sm font-semibold uppercase tracking-[0.18em] text-[#f3b54a]/90">
+          <div className="max-w-lg space-y-5 sm:space-y-6">
+            <div className="space-y-2">
+              <p className="hero-intro-item font-mono text-xs sm:text-sm font-semibold uppercase tracking-[0.16em] text-[#f3b54a]/90">
                 {heroConfig.subRole}
               </p>
 
-              <p className="hero-intro-item font-display text-[clamp(1.75rem,3.4vw,2.65rem)] font-bold leading-[1.12] tracking-[-0.025em] text-[#f5f2eb]">
+              <p className="hero-intro-item font-display text-[clamp(1.5rem,3.4vw,2.65rem)] font-bold leading-[1.14] tracking-[-0.025em] text-[#f5f2eb]">
                 {heroConfig.descriptionLines.map((line, idx) => (
                   <span key={line} className="block">
                     {line}
@@ -525,17 +570,17 @@ export function Hero() {
               </p>
             </div>
 
-            {/* CTA: "View My Work" — Rounded Outlined Button with Small Circular Diagonal Arrow Icon */}
+            {/* CTA: "View My Work" — Minimum 48x48px Touch Target */}
             <div className="hero-intro-item pt-1">
               <a
                 href={heroConfig.ctaTarget}
                 onClick={handleViewWorkClick}
-                className="group inline-flex items-center gap-3.5 rounded-full border border-[#f3b54a]/65 bg-[#091810]/80 px-6 py-3.5 font-display text-sm sm:text-base font-semibold tracking-[-0.01em] text-[#f5f2eb] backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-[3px] hover:border-[#ffd984] hover:bg-[#f3b54a]/15 hover:shadow-[0_10px_28px_-6px_rgba(243,181,74,0.38)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#ffd984]"
+                className="group inline-flex min-h-12 items-center gap-3.5 rounded-full border border-[#f3b54a]/65 bg-[#091810]/85 px-6 py-3.5 font-display text-sm sm:text-base font-semibold tracking-[-0.01em] text-[#f5f2eb] backdrop-blur-md transition-all duration-300 ease-out hover:-translate-y-[3px] hover:border-[#ffd984] hover:bg-[#f3b54a]/15 hover:shadow-[0_10px_28px_-6px_rgba(243,181,74,0.38)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#ffd984]"
               >
                 <span>{heroConfig.ctaLabel}</span>
                 <span
                   aria-hidden="true"
-                  className="inline-flex size-7 items-center justify-center rounded-full border border-[#f3b54a]/55 bg-[#f3b54a]/15 text-[#ffd984] transition-transform duration-300 ease-out group-hover:translate-x-[3px] group-hover:-translate-y-[3px] group-hover:bg-[#f3b54a] group-hover:text-[#030906]"
+                  className="inline-flex size-8 items-center justify-center rounded-full border border-[#f3b54a]/55 bg-[#f3b54a]/15 text-[#ffd984] transition-transform duration-300 ease-out group-hover:translate-x-[3px] group-hover:-translate-y-[3px] group-hover:bg-[#f3b54a] group-hover:text-[#030906]"
                 >
                   <svg
                     className="size-3.5"
@@ -555,14 +600,14 @@ export function Hero() {
           </div>
 
           {/* Lower-Right Subtle Highlights Strip */}
-          <div className="hero-intro-item flex flex-wrap items-center gap-2.5 md:justify-end">
+          <div className="hero-intro-item flex flex-wrap items-center gap-2 md:justify-end">
             {personalInfo.heroBadges.map((badge) => (
               <span
                 key={badge}
-                className="inline-flex items-center gap-2 rounded-full border border-[#f3b54a]/25 bg-[#08160e]/80 px-4 py-2 font-mono text-xs font-medium uppercase tracking-[0.14em] text-[#f5f2eb]/90 backdrop-blur-md"
+                className="inline-flex items-center gap-2 rounded-full border border-[#f3b54a]/25 bg-[#08160e]/80 px-3.5 py-2 font-mono text-[11px] sm:text-xs font-medium uppercase tracking-[0.12em] text-[#f5f2eb]/90 backdrop-blur-md"
               >
-                <span className="size-1.5 rounded-full bg-[#f3b54a]" />
-                {badge}
+                <span className="size-1.5 shrink-0 rounded-full bg-[#f3b54a]" />
+                <span>{badge}</span>
               </span>
             ))}
           </div>

@@ -13,6 +13,18 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <style>
+      html[data-preloader="pending"] body {
+        background-color: #06110D;
+      }
+      html[data-preloader="pending"] #root:empty::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        z-index: 110;
+        background-color: #06110D;
+      }
+    </style>
     <script>
       (function () {
         try {
@@ -23,6 +35,19 @@
           var meta = document.querySelector('meta[name="theme-color"]');
           if (meta) meta.content = theme === 'dark' ? '#141414' : '#eef0f2';
         } catch (e) {}
+
+        try {
+          if (sessionStorage.getItem('sv_preloader_seen_v1') !== '1') {
+            document.documentElement.setAttribute('data-preloader', 'pending');
+            var clearFailSafe = function () {
+              document.documentElement.removeAttribute('data-preloader');
+            };
+            window.setTimeout(clearFailSafe, 4200);
+            window.addEventListener('error', clearFailSafe, { once: true });
+          }
+        } catch (e) {
+          document.documentElement.removeAttribute('data-preloader');
+        }
       })();
     </script>
   </head>

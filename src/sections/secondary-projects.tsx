@@ -1,6 +1,11 @@
 import { useRef, useState } from 'react';
 import { ArchitectureStage } from '../components/architecture-stage';
-import { personalInfo, toolProjects } from '../lib/content';
+import { ProjectDialog } from '../components/project-dialog';
+import {
+  personalInfo,
+  toolProjects,
+  type ProjectConfig,
+} from '../lib/content';
 import { gsap, motionOk, ScrollTrigger, useGSAP } from '../lib/gsap';
 import { Link } from '../lib/navigation';
 import { projectHash } from '../lib/routes';
@@ -9,6 +14,10 @@ export function SecondaryProjects() {
   const root = useRef<HTMLElement>(null);
   const previewCardRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
+  const [selectedProject, setSelectedProject] = useState<ProjectConfig | null>(
+    null
+  );
+  const [dialogTrigger, setDialogTrigger] = useState<HTMLElement | null>(null);
 
   const activeTool = toolProjects[activeIndex] ?? toolProjects[0];
 
@@ -55,11 +64,11 @@ export function SecondaryProjects() {
     if (motionOk() && previewCardRef.current) {
       gsap.fromTo(
         previewCardRef.current,
-        { scale: 1.04, opacity: 0.55 },
+        { scale: 1.03, opacity: 0.6 },
         {
           scale: 1,
           opacity: 1,
-          duration: 0.55,
+          duration: 0.5,
           ease: 'power3.out',
           overwrite: true,
         }
@@ -72,17 +81,17 @@ export function SecondaryProjects() {
       ref={root}
       id="secondary-projects"
       aria-labelledby="secondary-projects-heading"
-      className="relative mx-auto max-w-[1440px] px-5 py-28 sm:px-8 md:py-40 lg:px-14 border-t border-border"
+      className="relative mx-auto max-w-[1440px] px-4 py-24 sm:px-8 md:py-36 lg:px-14 border-t border-border"
     >
       {/* Section Header */}
-      <div className="mb-14 flex flex-col justify-between gap-6 md:flex-row md:items-end">
+      <div className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
         <div className="space-y-3">
           <span className="font-mono text-xs uppercase tracking-[0.16em] text-muted-foreground">
             03 / Projects 04 &amp; 05 · IaC State Governance &amp; Observability
           </span>
           <h2
             id="secondary-projects-heading"
-            className="font-display text-[clamp(2.4rem,5.8vw,5.2rem)] font-black leading-[0.9] tracking-[-0.045em] text-foreground"
+            className="font-display text-[clamp(2.2rem,5.8vw,5.2rem)] font-black leading-[0.9] tracking-[-0.045em] text-foreground"
           >
             State &amp; <span className="text-primary">telemetry.</span>
           </h2>
@@ -95,7 +104,7 @@ export function SecondaryProjects() {
           </p>
           <Link
             href="#work"
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-5 py-2.5 font-display text-xs font-bold uppercase tracking-wider text-foreground transition-colors hover:border-primary hover:text-primary"
+            className="inline-flex min-h-12 items-center gap-2 rounded-full border border-border bg-card px-5 py-3 font-display text-xs font-bold uppercase tracking-wider text-foreground transition-colors hover:border-primary hover:text-primary"
           >
             <span>All 5 Projects</span>
             <span aria-hidden="true">→</span>
@@ -112,14 +121,16 @@ export function SecondaryProjects() {
             return (
               <div
                 key={tool.id}
-                onPointerEnter={() => activateItem(index)}
+                onPointerEnter={(e) => {
+                  if (e.pointerType === 'mouse') activateItem(index);
+                }}
                 onFocus={() => activateItem(index)}
                 className={`tool-row group relative transition-colors duration-300 ${
                   isActive ? 'bg-card/85' : 'hover:bg-card/45'
                 }`}
               >
                 <div className="flex flex-col gap-4 px-4 py-7 sm:px-6 sm:py-8">
-                  <div className="flex items-center justify-between gap-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-3">
                       <span className="font-mono text-xs font-bold text-primary">
                         {tool.indexNumber}
@@ -133,14 +144,28 @@ export function SecondaryProjects() {
                       <button
                         type="button"
                         onClick={() => activateItem(index)}
-                        className="lg:hidden rounded-full border border-border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground"
+                        aria-pressed={isActive}
+                        className="inline-flex min-h-12 items-center justify-center rounded-full border border-border bg-background px-4 py-2 font-mono text-xs font-semibold text-foreground transition-colors hover:border-primary hover:text-primary cursor-pointer"
                       >
-                        Preview
+                        {isActive ? 'Selected' : 'Select Preview'}
                       </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          setDialogTrigger(e.currentTarget);
+                          setSelectedProject(tool);
+                        }}
+                        aria-haspopup="dialog"
+                        className="inline-flex min-h-12 items-center justify-center rounded-full border border-border bg-background px-4 py-2 font-mono text-xs font-semibold text-foreground transition-colors hover:border-primary hover:text-primary cursor-pointer"
+                      >
+                        Quick View
+                      </button>
+
                       <Link
                         href={projectHash(tool.id)}
                         aria-label={`View ${tool.name} case study`}
-                        className="inline-flex size-9 items-center justify-center rounded-full border border-border transition-all duration-300 group-hover:border-primary group-hover:bg-primary group-hover:text-primary-foreground"
+                        className="inline-flex size-12 shrink-0 items-center justify-center rounded-full border border-border transition-all duration-300 group-hover:border-primary group-hover:bg-primary group-hover:text-primary-foreground"
                       >
                         <span
                           aria-hidden="true"
@@ -206,7 +231,7 @@ export function SecondaryProjects() {
                 backgroundColor: activeTool.color,
                 color: activeTool.ink,
               }}
-              className="overflow-hidden rounded-[28px] border border-border p-6 sm:p-7 shadow-xl transition-colors duration-500 space-y-6"
+              className="overflow-hidden rounded-[28px] border border-border p-5 sm:p-7 shadow-xl transition-colors duration-500 space-y-6"
             >
               <div className="flex items-center justify-between gap-2 border-b border-current/15 pb-4">
                 <span className="font-mono text-xs uppercase tracking-[0.14em] opacity-85">
@@ -234,7 +259,7 @@ export function SecondaryProjects() {
                     backgroundColor: activeTool.ink,
                     color: activeTool.color,
                   }}
-                  className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 font-display text-xs font-bold uppercase tracking-wider shadow-md transition-transform hover:-translate-y-0.5"
+                  className="inline-flex min-h-12 items-center gap-2 rounded-full px-5 py-3 font-display text-xs font-bold uppercase tracking-wider shadow-md transition-transform hover:-translate-y-0.5"
                 >
                   <span>View Case Study</span>
                   <span aria-hidden="true">→</span>
@@ -244,7 +269,7 @@ export function SecondaryProjects() {
                   href={personalInfo.github}
                   target="_blank"
                   rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-full border border-current/30 px-4 py-2 font-mono text-xs font-semibold hover:bg-black/15"
+                  className="inline-flex min-h-12 items-center gap-1.5 rounded-full border border-current/30 px-4 py-2.5 font-mono text-xs font-semibold hover:bg-black/15"
                 >
                   <span>GitHub Profile ↗</span>
                 </a>
@@ -253,6 +278,13 @@ export function SecondaryProjects() {
           )}
         </div>
       </div>
+
+      {/* Keyboard-Accessible Quick View Modal */}
+      <ProjectDialog
+        project={selectedProject}
+        onClose={() => setSelectedProject(null)}
+        triggerRef={dialogTrigger}
+      />
     </section>
   );
 }

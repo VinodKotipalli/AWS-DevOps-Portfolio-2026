@@ -82,6 +82,7 @@
   --font-sans: "Mona Sans Variable", "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Mona Sans Variable", "Bricolage Grotesque Variable", ui-sans-serif, system-ui, sans-serif;
   --font-hand: "Caveat Variable", "Segoe Print", "Bradley Hand", cursive;
+  --font-script: "Caveat Variable", "Segoe Print", "Bradley Hand", cursive;
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
   --ease-expo: var(--ease-out-expo);
 }
@@ -89,6 +90,7 @@
 @layer base {
   * {
     border-color: var(--border);
+    min-width: 0;
   }
   html {
     background: var(--background);
@@ -96,11 +98,24 @@
     font-family: var(--font-sans);
     font-optical-sizing: auto;
     -webkit-font-smoothing: antialiased;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+    overflow-x: clip;
   }
   body {
     background: var(--background);
     color: var(--foreground);
     overflow-x: clip;
+    overflow-wrap: break-word;
+  }
+  a:focus-visible,
+  button:focus-visible,
+  input:focus-visible,
+  textarea:focus-visible,
+  select:focus-visible,
+  [tabindex]:focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 3px;
   }
 }
 
@@ -331,17 +346,6 @@
     transparent var(--iris-r),
     #000 calc(var(--iris-r) + 1px)
   );
-}
-
-@media (min-width: 768px) and (min-height: 640px) {
-  .chapter-stack .chapter {
-    position: sticky;
-    top: 0;
-    margin-bottom: 42svh;
-  }
-  .work-sequence[data-cinematic="true"] .chapter[data-index="0"] {
-    margin-bottom: 142svh;
-  }
 }
 
 /* Testimonial cards: pinned to a dotted board, key phrases marked in rose. */

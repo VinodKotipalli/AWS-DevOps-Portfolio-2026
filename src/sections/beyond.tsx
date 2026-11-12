@@ -170,7 +170,7 @@ export function Beyond() {
                 )}
               </div>
 
-              <div className="mt-5 pt-3 border-t border-border/50 flex items-center justify-between">
+              <div className="mt-5 pt-3 border-t border-border/50 flex items-center justify-between gap-2">
                 <span className="font-mono text-[11px] text-muted-foreground">
                   Credential {cert.index}
                 </span>
@@ -180,7 +180,7 @@ export function Beyond() {
                     setExpandedCode(isExpanded ? null : cert.code)
                   }
                   aria-expanded={isExpanded}
-                  className="font-mono text-xs font-semibold text-primary hover:underline cursor-pointer"
+                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-border bg-background px-4 py-2 font-mono text-xs font-semibold text-primary transition-colors hover:border-primary cursor-pointer"
                 >
                   {isExpanded ? 'Hide details −' : 'View details +'}
                 </button>
@@ -217,6 +217,10 @@ export function Beyond() {
               <img
                 src={photos.beyondPhoto}
                 alt="Cloud infrastructure horizon"
+                width={1200}
+                height={900}
+                loading="lazy"
+                decoding="async"
                 className="size-full object-cover object-center will-change-transform"
               />
               <div className="pointer-events-none absolute inset-x-4 bottom-4 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/15 bg-black/60 px-4 py-2.5 font-mono text-[11px] text-white/90 backdrop-blur-md">

@@ -23,12 +23,12 @@ export function ProjectPage({ id }: ProjectPageProps) {
           <div className="flex flex-wrap items-center justify-between gap-4 border-b border-current/15 pb-6">
             <Link
               href="#work"
-              className="inline-flex items-center gap-2 rounded-full border border-current/25 px-4 py-1.5 font-mono text-xs uppercase tracking-wider hover:bg-black/15"
+              className="inline-flex min-h-12 items-center gap-2 rounded-full border border-current/25 px-5 py-2.5 font-mono text-xs uppercase tracking-wider hover:bg-black/15"
             >
               <span>← All 5 Projects</span>
             </Link>
 
-            <span className="rounded-full border border-current/25 bg-black/15 px-3.5 py-1 font-mono text-xs uppercase tracking-wider">
+            <span className="rounded-full border border-current/25 bg-black/15 px-3.5 py-1.5 font-mono text-xs uppercase tracking-wider">
               Project {project.indexNumber} · {project.category}
             </span>
           </div>
@@ -38,10 +38,10 @@ export function ProjectPage({ id }: ProjectPageProps) {
               <div className="font-mono text-xs uppercase tracking-[0.16em] opacity-85">
                 {project.category}
               </div>
-              <h1 className="font-display text-[clamp(2.4rem,6vw,5.8rem)] font-black leading-[0.9] tracking-[-0.045em]">
+              <h1 className="font-display text-[clamp(2.1rem,6vw,5.8rem)] font-black leading-[0.9] tracking-[-0.045em]">
                 {project.name}
               </h1>
-              <p className="max-w-2xl font-display text-xl sm:text-2xl font-semibold leading-snug opacity-95">
+              <p className="max-w-2xl font-display text-lg sm:text-2xl font-semibold leading-snug opacity-95">
                 {project.subtitle}
               </p>
               {project.sourceSubtitle && (
@@ -68,7 +68,7 @@ export function ProjectPage({ id }: ProjectPageProps) {
                     href={project.repositoryUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-full border border-current/30 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider hover:bg-black/15"
+                    className="inline-flex min-h-12 items-center rounded-full border border-current/30 px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-wider hover:bg-black/15"
                   >
                     Repository ↗
                   </a>
@@ -77,7 +77,7 @@ export function ProjectPage({ id }: ProjectPageProps) {
                     href={personalInfo.github}
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-full border border-current/30 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider hover:bg-black/15"
+                    className="inline-flex min-h-12 items-center rounded-full border border-current/30 px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-wider hover:bg-black/15"
                   >
                     GitHub Profile ↗
                   </a>
@@ -88,7 +88,7 @@ export function ProjectPage({ id }: ProjectPageProps) {
                     href={project.demoUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="rounded-full border border-current/30 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider hover:bg-black/15"
+                    className="inline-flex min-h-12 items-center rounded-full border border-current/30 px-5 py-2.5 font-mono text-xs font-bold uppercase tracking-wider hover:bg-black/15"
                   >
                     Live Demo ↗
                   </a>

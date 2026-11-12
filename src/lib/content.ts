@@ -32,6 +32,8 @@ export type Project = {
   architectureFlows: Flow[];
 };
 
+export type ProjectConfig = Project;
+
 export type Note = {
   id: string;
   part: string;

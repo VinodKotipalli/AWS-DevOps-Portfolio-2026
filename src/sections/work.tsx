@@ -1,8 +1,13 @@
-import { useRef, type CSSProperties } from 'react';
+import { useRef, useState } from 'react';
 import { ArchitectureStage } from '../components/architecture-stage';
-import { featuredProjects, personalInfo, projects } from '../lib/content';
+import { ProjectDialog } from '../components/project-dialog';
 import {
-  cinematic,
+  featuredProjects,
+  personalInfo,
+  projects,
+  type ProjectConfig,
+} from '../lib/content';
+import {
   gsap,
   motionOk,
   ScrollTrigger,
@@ -15,15 +20,203 @@ import { splitChange } from '../lib/utils';
 
 export function Work() {
   const root = useRef<HTMLElement>(null);
+  const [selectedProject, setSelectedProject] = useState<ProjectConfig | null>(
+    null
+  );
+  const [dialogTrigger, setDialogTrigger] = useState<HTMLElement | null>(null);
+
+  const openQuickView = (project: ProjectConfig, el: HTMLElement | null) => {
+    setDialogTrigger(el);
+    setSelectedProject(project);
+  };
 
   useGSAP(
     () => {
       const section = root.current;
       if (!section || !motionOk()) return;
 
-      const chapters = gsap.utils.toArray<HTMLElement>('.work-chapter', section);
+      // Smooth fade-in and upward slide (y: 60, opacity: 0) as the Projects section enters the viewport
+      gsap.from(section, {
+        y: 60,
+        opacity: 0,
+        duration: 1,
+        ease: 'power3.out',
+        clearProps: 'transform',
+        scrollTrigger: {
+          trigger: section,
+          start: 'top 85%',
+          toggleActions: 'play none none reverse',
+        },
+      });
+
+      const isDesktopAperture =
+        typeof window !== 'undefined' &&
+        window.matchMedia(
+          '(min-width: 768px) and (min-height: 540px) and (prefers-reduced-motion: no-preference)'
+        ).matches;
+
+      section.dataset.cinematic = isDesktopAperture ? 'true' : 'false';
+
       const splits: SplitText[] = [];
 
+      // ======================================================================
+      // 1. "Selected work." Entrance Animation (Before entering projects)
+      // ======================================================================
+      const introVeil = section.querySelector<HTMLElement>('.work-veil');
+      const introEyebrow = section.querySelector<HTMLElement>(
+        '.work-intro-eyebrow'
+      );
+      const introWords = section.querySelectorAll<HTMLElement>(
+        '.work-heading-word'
+      );
+      const introDot = section.querySelector<HTMLElement>('.work-dot');
+      const introDotRing = section.querySelector<HTMLElement>('.work-dot-ring');
+      const introDesc = section.querySelector<HTMLElement>('.work-intro-desc');
+
+      if (introVeil && introWords.length) {
+        const headingSplit = new SplitText(introWords, {
+          type: 'chars',
+          charsClass: 'work-char inline-block',
+          mask: 'chars',
+        });
+        splits.push(headingSplit);
+
+        const introTl = gsap.timeline({
+          scrollTrigger: {
+            trigger: introVeil,
+            start: 'top 82%',
+            toggleActions: 'play none none reverse',
+          },
+        });
+
+        if (introEyebrow) {
+          introTl.fromTo(
+            introEyebrow,
+            { y: 20, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.65, ease: 'power3.out' },
+            0
+          );
+        }
+
+        if (headingSplit.chars.length) {
+          introTl.fromTo(
+            headingSplit.chars,
+            { yPercent: 125, rotateZ: 4, opacity: 0 },
+            {
+              yPercent: 0,
+              rotateZ: 0,
+              opacity: 1,
+              duration: 0.95,
+              stagger: 0.028,
+              ease: 'expo.out',
+            },
+            0.08
+          );
+        }
+
+        if (introDot) {
+          introTl.fromTo(
+            introDot,
+            { scale: 0, opacity: 0 },
+            {
+              scale: 1,
+              opacity: 1,
+              duration: 0.7,
+              ease: 'back.out(2.4)',
+            },
+            0.42
+          );
+        }
+
+        if (introDesc) {
+          introTl.fromTo(
+            introDesc,
+            { y: 22, opacity: 0 },
+            { y: 0, opacity: 1, duration: 0.75, ease: 'power3.out' },
+            0.36
+          );
+        }
+
+        // Continuous subtle pulse on the raspberry period dot
+        if (introDotRing) {
+          gsap.fromTo(
+            introDotRing,
+            { scale: 0.9, opacity: 0.75 },
+            {
+              scale: 2.15,
+              opacity: 0,
+              duration: 1.9,
+              ease: 'power2.out',
+              repeat: -1,
+            }
+          );
+        }
+      }
+
+      // ======================================================================
+      // 2. Zero-Gap Circular Aperture Reveal from the Raspberry Dot into Project 01
+      // ======================================================================
+      const chapters = gsap.utils.toArray<HTMLElement>('.work-chapter', section);
+      const firstChapter = chapters[0];
+
+      if (isDesktopAperture && introVeil && introDot && firstChapter) {
+        const placeIrisOrigin = () => {
+          const rect = introVeil.getBoundingClientRect();
+          const dotRect = introDot.getBoundingClientRect();
+          const cx = dotRect.left - rect.left + dotRect.width / 2;
+          const cy = dotRect.top - rect.top + dotRect.height / 2;
+          const maxR = Math.hypot(
+            Math.max(cx, rect.width - cx),
+            Math.max(cy, rect.height - cy)
+          );
+          introVeil.style.setProperty('--iris-x', `${cx}px`);
+          introVeil.style.setProperty('--iris-y', `${cy}px`);
+          return { maxR };
+        };
+
+        placeIrisOrigin();
+        const state = { r: 0 };
+
+        const irisTl = gsap.timeline({
+          scrollTrigger: {
+            trigger: firstChapter,
+            start: 'top top',
+            end: () => `+=${Math.round(window.innerHeight * 0.85)}`,
+            scrub: 0.5,
+            invalidateOnRefresh: true,
+            onRefresh: () => {
+              placeIrisOrigin();
+              introVeil.style.setProperty('--iris-r', `${state.r}px`);
+            },
+          },
+        });
+
+        irisTl
+          .to(
+            state,
+            {
+              r: () => placeIrisOrigin().maxR,
+              ease: 'power2.inOut',
+              onUpdate: () => {
+                introVeil.style.setProperty('--iris-r', `${state.r}px`);
+              },
+            },
+            0
+          )
+          .fromTo(
+            '.work-intro-copy',
+            { scale: 1 },
+            {
+              scale: 1.12,
+              ease: 'power2.inOut',
+            },
+            0
+          );
+      }
+
+      // ======================================================================
+      // 3. Project Chapter Titles & Full-Screen Stacking Cards
+      // ======================================================================
       chapters.forEach((chapter, index) => {
         const title = chapter.querySelector('.chapter-title');
         if (!title) return;
@@ -34,7 +227,7 @@ export function Work() {
         });
         splits.push(split);
 
-        if (index === 0 && cinematic()) return;
+        if (index === 0 && isDesktopAperture) return;
         const release = splitChange(split.chars);
         gsap.from(split.chars, {
           yPercent: 140,
@@ -44,76 +237,13 @@ export function Work() {
           onComplete: release,
           scrollTrigger: {
             trigger: chapter,
-            start: 'top 55%',
+            start: 'top 68%',
             toggleActions: 'play none none reverse',
           },
         });
       });
 
-      if (cinematic()) {
-        const intro = section.querySelector<HTMLElement>('.work-intro');
-        const veil = section.querySelector<HTMLElement>('.work-veil');
-        const dot = section.querySelector<HTMLElement>('.work-dot');
-
-        // Circular Iris Reveal from the Raspberry Period
-        if (intro && veil && dot) {
-          const placeDot = () => {
-            const rect = intro.getBoundingClientRect();
-            const dotRect = dot.getBoundingClientRect();
-            const cx = dotRect.left - rect.left + dotRect.width / 2;
-            const cy = dotRect.top - rect.top + dotRect.height / 2;
-            const maxR = Math.hypot(
-              Math.max(cx, rect.width - cx),
-              Math.max(cy, rect.height - cy)
-            );
-            veil.style.setProperty('--dot-x', `${cx}px`);
-            veil.style.setProperty('--dot-y', `${cy}px`);
-            return { maxR };
-          };
-
-          placeDot();
-          const state = { r: 0 };
-
-          const iris = gsap.timeline({
-            scrollTrigger: {
-              trigger: intro,
-              start: 'top top',
-              end: () => `+=${Math.round(window.innerHeight * 0.95)}`,
-              pin: true,
-              scrub: 0.6,
-              anticipatePin: 1,
-              invalidateOnRefresh: true,
-              onRefresh: () => {
-                placeDot();
-                veil.style.setProperty('--iris-r', `${state.r}px`);
-              },
-            },
-          });
-
-          iris
-            .to(
-              state,
-              {
-                r: () => placeDot().maxR,
-                ease: 'power2.in',
-                onUpdate: () => {
-                  veil.style.setProperty('--iris-r', `${state.r}px`);
-                },
-              },
-              0
-            )
-            .to(
-              '.work-intro-copy',
-              {
-                scale: 1.16,
-                opacity: 0,
-                ease: 'power2.in',
-              },
-              0
-            );
-        }
-
-        // Three Full-Screen Stacking Project Panels
+      if (isDesktopAperture) {
         chapters.forEach((chapter, index) => {
           const next = chapters[index + 1];
           const inner = chapter.querySelector<HTMLElement>('.chapter-surface');
@@ -173,6 +303,7 @@ export function Work() {
       }
 
       return () => {
+        delete section.dataset.cinematic;
         splits.forEach((s) => s.revert());
         ScrollTrigger.refresh();
       };
@@ -180,64 +311,48 @@ export function Work() {
     { scope: root }
   );
 
-  const firstProject = featuredProjects[0];
-
   return (
     <section
       ref={root}
       id="selected-work"
       aria-label="Selected Projects"
-      className="relative w-full"
+      className="work-sequence relative w-full"
     >
       {/* Anchor alias for #projects */}
       <div id="projects" className="absolute top-0" />
 
       {/* ====================================================================
-          SECTION 4: "Selected work." TITLE & CIRCULAR IRIS REVEAL
+          SECTION 4: "Selected work." VEIL STAGE
+          - Animates characters + glowing raspberry dot on scroll-in
+          - Sits directly over Project 01 (margin-bottom: -100svh on desktop)
+            and opens a circular iris aperture from the raspberry dot into Project 01 with ZERO gap
          ==================================================================== */}
-      <div className="work-intro relative flex h-svh min-h-[600px] w-full flex-col items-center justify-center overflow-hidden bg-background px-5 text-center">
-        <div className="work-intro-copy relative z-10 flex flex-col items-center">
-          <span className="mb-6 font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
+      <div className="work-veil relative flex min-h-[58svh] md:h-svh w-full flex-col items-center justify-center overflow-hidden bg-background px-4 py-12 text-center sm:px-8">
+        <div className="work-intro-copy relative z-10 flex flex-col items-center will-change-transform">
+          <span className="work-intro-eyebrow mb-5 font-mono text-xs uppercase tracking-[0.18em] text-muted-foreground">
             02 / Cloud &amp; DevOps Architecture Projects
           </span>
 
-          <h2 className="font-display text-[clamp(3.75rem,15.5vw,17rem)] font-black leading-[0.82] tracking-[-0.055em] text-foreground select-none">
-            <span className="block">Selected</span>
+          <h2
+            aria-label="Selected work."
+            className="font-display text-[clamp(3.5rem,15.5vw,16.8rem)] font-black leading-[0.82] tracking-[-0.055em] text-foreground select-none"
+          >
+            <span className="work-heading-word block">Selected</span>
             <span className="inline-flex items-baseline">
-              <span>work</span>
+              <span className="work-heading-word">work</span>
               <span
                 aria-hidden="true"
-                className="work-dot ml-1.5 sm:ml-3 inline-block size-[0.16em] rounded-full bg-primary align-baseline"
-              />
+                className="work-dot relative ml-1.5 sm:ml-3 inline-flex size-[0.16em] items-center justify-center rounded-full bg-primary align-baseline shadow-[0_0_24px_rgba(240,88,122,0.65)]"
+              >
+                <span className="work-dot-ring pointer-events-none absolute inset-0 rounded-full border-2 border-primary" />
+              </span>
             </span>
           </h2>
 
-          <p className="mt-8 max-w-lg font-sans text-sm sm:text-base leading-relaxed text-muted-foreground">
+          <p className="work-intro-desc mt-6 sm:mt-8 max-w-lg font-sans text-sm sm:text-base leading-relaxed text-muted-foreground">
             Five hands-on AWS, Terraform, Amazon EKS, GitHub Actions CI/CD, and
             Prometheus &amp; Grafana engineering projects.
           </p>
-        </div>
-
-        {/* Circular Iris Veil revealing Panel 01 */}
-        <div
-          aria-hidden="true"
-          style={
-            {
-              '--iris-r': '0px',
-              backgroundColor: firstProject?.color ?? '#b52845',
-              color: firstProject?.ink ?? '#f0e7e6',
-            } as CSSProperties
-          }
-          className="work-veil pointer-events-none absolute inset-0 z-20 hidden md:flex items-center justify-center"
-        >
-          <div className="flex flex-col items-center gap-3 opacity-85 px-4 text-center">
-            <span className="font-mono text-xs uppercase tracking-[0.2em]">
-              Project 01 · {firstProject?.category}
-            </span>
-            <span className="font-display text-2xl sm:text-3xl font-bold tracking-tight">
-              {firstProject?.name}
-            </span>
-          </div>
         </div>
       </div>
 
@@ -248,15 +363,18 @@ export function Work() {
         {featuredProjects.map((project, index) => (
           <article
             key={project.id}
+            data-index={index}
             style={{ zIndex: index + 1 }}
-            className="work-chapter md:sticky md:top-0 min-h-svh w-full"
+            className={`work-chapter md:sticky md:top-0 min-h-svh w-full ${
+              index === 0 ? 'md:pb-[85svh]' : ''
+            }`}
           >
             <div
               style={{
                 backgroundColor: project.color,
                 color: project.ink,
               }}
-              className="chapter-surface relative flex min-h-svh w-full flex-col justify-between overflow-hidden px-5 py-10 sm:px-8 sm:py-12 md:px-12 lg:px-16 transition-shadow"
+              className="chapter-surface relative flex min-h-svh w-full flex-col justify-between overflow-hidden px-4 py-10 sm:px-8 sm:py-12 md:px-12 lg:px-16 transition-shadow"
             >
               {/* Outgoing Shade Overlay */}
               <div
@@ -265,7 +383,7 @@ export function Work() {
               />
 
               {/* Top Metadata Bar */}
-              <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 border-b border-current/15 pb-5">
+              <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-current/15 pb-5">
                 <div className="flex items-center gap-3">
                   <span className="font-mono text-xs sm:text-sm font-bold tracking-widest">
                     {project.indexNumber} / 0{projects.length}
@@ -282,10 +400,10 @@ export function Work() {
               </div>
 
               {/* Center Split Grid */}
-              <div className="relative z-10 my-auto grid grid-cols-1 items-center gap-10 py-8 lg:grid-cols-12 lg:gap-12">
+              <div className="relative z-10 my-auto grid grid-cols-1 items-center gap-8 py-8 lg:grid-cols-12 lg:gap-12">
                 {/* Left Column */}
                 <div className="lg:col-span-6 space-y-5">
-                  <h3 className="chapter-title font-display text-[clamp(2.1rem,4.4vw,4.4rem)] font-black leading-[0.94] tracking-[-0.04em]">
+                  <h3 className="chapter-title font-display text-[clamp(1.9rem,4.4vw,4.4rem)] font-black leading-[0.94] tracking-[-0.04em]">
                     {project.name}
                   </h3>
 
@@ -310,7 +428,7 @@ export function Work() {
                     ))}
                   </ul>
 
-                  {/* Actions: View Case Study + GitHub Profile (hide repositoryUrl/demoUrl when unset) */}
+                  {/* Actions with 48x48px Minimum Touch Targets */}
                   <div className="pt-3 flex flex-wrap items-center gap-3">
                     <Link
                       href={projectHash(project.id)}
@@ -319,18 +437,27 @@ export function Work() {
                         backgroundColor: project.ink,
                         color: project.color,
                       }}
-                      className="inline-flex items-center gap-3 rounded-full px-6 py-3 font-display text-sm font-bold tracking-[-0.01em] shadow-lg transition-transform duration-300 hover:-translate-y-0.5"
+                      className="inline-flex min-h-12 items-center gap-3 rounded-full px-6 py-3 font-display text-sm font-bold tracking-[-0.01em] shadow-lg transition-transform duration-300 hover:-translate-y-0.5"
                     >
                       <span>View Case Study</span>
                       <span aria-hidden="true">→</span>
                     </Link>
+
+                    <button
+                      type="button"
+                      onClick={(e) => openQuickView(project, e.currentTarget)}
+                      aria-haspopup="dialog"
+                      className="inline-flex min-h-12 items-center gap-2 rounded-full border border-current/35 px-5 py-3 font-display text-xs font-bold uppercase tracking-wider transition-colors hover:bg-black/15 cursor-pointer"
+                    >
+                      <span>Quick View</span>
+                    </button>
 
                     {project.repositoryUrl ? (
                       <a
                         href={project.repositoryUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-2 rounded-full border border-current/30 px-5 py-3 font-display text-xs font-bold uppercase tracking-wider hover:bg-black/10"
+                        className="inline-flex min-h-12 items-center gap-2 rounded-full border border-current/30 px-5 py-3 font-display text-xs font-bold uppercase tracking-wider hover:bg-black/10"
                       >
                         <span>Repository ↗</span>
                       </a>
@@ -339,7 +466,7 @@ export function Work() {
                         href={personalInfo.github}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-2 rounded-full border border-current/30 px-5 py-3 font-display text-xs font-bold uppercase tracking-wider transition-colors hover:bg-black/15"
+                        className="inline-flex min-h-12 items-center gap-2 rounded-full border border-current/30 px-5 py-3 font-display text-xs font-bold uppercase tracking-wider transition-colors hover:bg-black/15"
                       >
                         <span>GitHub Profile ↗</span>
                       </a>
@@ -350,7 +477,7 @@ export function Work() {
                         href={project.demoUrl}
                         target="_blank"
                         rel="noreferrer"
-                        className="inline-flex items-center gap-2 rounded-full border border-current/30 px-5 py-3 font-display text-xs font-bold uppercase tracking-wider hover:bg-black/10"
+                        className="inline-flex min-h-12 items-center gap-2 rounded-full border border-current/30 px-5 py-3 font-display text-xs font-bold uppercase tracking-wider hover:bg-black/10"
                       >
                         <span>Live Demo ↗</span>
                       </a>
@@ -390,6 +517,13 @@ export function Work() {
           </article>
         ))}
       </div>
+
+      {/* Keyboard-Accessible Quick View Modal */}
+      <ProjectDialog
+        project={selectedProject}
+        onClose={() => setSelectedProject(null)}
+        triggerRef={dialogTrigger}
+      />
     </section>
   );
 }

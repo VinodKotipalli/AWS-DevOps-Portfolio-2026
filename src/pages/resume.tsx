@@ -31,7 +31,7 @@ export function ResumePage() {
             <button
               type="button"
               onClick={downloadResumePdf}
-              className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-md transition-transform hover:-translate-y-0.5 cursor-pointer"
+              className="inline-flex min-h-12 items-center gap-2 rounded-full bg-primary px-5 py-3 font-display text-xs font-bold uppercase tracking-wider text-primary-foreground shadow-md transition-transform hover:-translate-y-0.5 cursor-pointer"
             >
               <span>Download PDF</span>
               <span aria-hidden="true">↓</span>
@@ -40,14 +40,14 @@ export function ResumePage() {
             <span
               aria-disabled="true"
               title="Set personalInfo.resumePdfUrl in src/lib/content.ts when a PDF file is supplied"
-              className="inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-4 py-2 font-mono text-xs text-muted-foreground opacity-70 cursor-not-allowed"
+              className="inline-flex min-h-12 items-center gap-2 rounded-full border border-border bg-background/60 px-4 py-2.5 font-mono text-xs text-muted-foreground opacity-75 cursor-not-allowed"
             >
               PDF Download Unavailable (No PDF URL Configured)
             </span>
           )}
           <Link
             href="#"
-            className="inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-2.5 font-mono text-xs text-foreground hover:border-primary"
+            className="inline-flex min-h-12 items-center gap-2 rounded-full border border-border bg-background px-5 py-3 font-mono text-xs text-foreground hover:border-primary"
           >
             ← Back Home
           </Link>
@@ -55,14 +55,14 @@ export function ResumePage() {
       </div>
 
       {/* Resume Document Sheet */}
-      <div className="rounded-[32px] border border-border bg-card p-7 sm:p-12 md:p-16 shadow-xl space-y-12">
+      <div className="rounded-[32px] border border-border bg-card p-5 sm:p-10 md:p-14 shadow-xl space-y-12">
         {/* Identity Header */}
         <header className="flex flex-col justify-between gap-6 border-b border-border pb-8 lg:flex-row lg:items-end">
           <div className="space-y-2">
-            <h1 className="font-display text-4xl sm:text-6xl font-black tracking-[-0.045em] text-foreground">
+            <h1 className="font-display text-3xl sm:text-5xl md:text-6xl font-black tracking-[-0.045em] text-foreground">
               {personalInfo.name}
             </h1>
-            <p className="font-display text-xl font-bold text-primary">
+            <p className="font-display text-lg sm:text-xl font-bold text-primary">
               {personalInfo.extendedTitle}
             </p>
             <p className="max-w-2xl font-sans text-sm text-muted-foreground pt-1 leading-relaxed">
@@ -70,17 +70,21 @@ export function ResumePage() {
             </p>
           </div>
 
-          <div className="font-mono text-xs text-muted-foreground space-y-1.5 lg:text-right shrink-0">
+          <div className="font-mono text-xs text-muted-foreground space-y-2 lg:text-right shrink-0">
             <div className="font-semibold text-foreground">
               {personalInfo.location} (Personal) · {personalInfo.employmentLocation} (Work)
             </div>
-            <div>
-              <a href={personalInfo.email.href} className="hover:text-primary">
+            <div className="flex flex-wrap lg:justify-end gap-2 pt-1">
+              <a
+                href={personalInfo.email.href}
+                className="inline-flex min-h-12 items-center rounded-full border border-border bg-background px-4 py-2 hover:border-primary hover:text-primary"
+              >
                 {personalInfo.email.address}
               </a>
-            </div>
-            <div>
-              <a href={personalInfo.phone.href} className="hover:text-primary">
+              <a
+                href={personalInfo.phone.href}
+                className="inline-flex min-h-12 items-center rounded-full border border-border bg-background px-4 py-2 hover:border-primary hover:text-primary"
+              >
                 {personalInfo.phone.display}
               </a>
             </div>
@@ -93,9 +97,9 @@ export function ResumePage() {
                     href={c.href}
                     target="_blank"
                     rel="noreferrer"
-                    className="underline hover:text-primary"
+                    className="inline-flex min-h-12 items-center rounded-full border border-border bg-background px-4 py-2 hover:border-primary hover:text-primary"
                   >
-                    {c.label}
+                    {c.label} ↗
                   </a>
                 ))}
             </div>

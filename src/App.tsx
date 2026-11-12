@@ -2,11 +2,18 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Lenis from 'lenis';
 import { Curtain, type CurtainHandle } from './components/curtain';
 import { CursorLabel } from './components/cursor-label';
+import { Preloader } from './components/preloader';
 import { SiteFooter } from './components/site-footer';
 import { SiteHeader } from './components/site-header';
 import { personalInfo, projectNames } from './lib/content';
-import { gsap, prefersReducedMotion, ScrollTrigger } from './lib/gsap';
+import {
+  canHoverAndFinePointer,
+  gsap,
+  prefersReducedMotion,
+  ScrollTrigger,
+} from './lib/gsap';
 import { NavigationContext } from './lib/navigation';
+import { shouldPlayPreloader } from './lib/preloader';
 import {
   parseRoute,
   routeKey,
@@ -38,6 +45,9 @@ function scrollToAnchor(anchor?: string, lenis?: Lenis | null) {
 
 export default function App() {
   const { theme, toggleTheme } = useTheme();
+  const [preloaderActive, setPreloaderActive] = useState<boolean>(() =>
+    shouldPlayPreloader()
+  );
   const [route, setRoute] = useState<Route>(() =>
     parseRoute(window.location.hash)
   );
@@ -48,9 +58,22 @@ export default function App() {
   const curtainRef = useRef<CurtainHandle>(null);
   const mainRef = useRef<HTMLElement>(null);
 
-  // Initialize Lenis smooth scrolling synchronized with GSAP ScrollTrigger
+  const handlePreloaderComplete = useCallback(
+    (restoreFocusToMain: boolean) => {
+      setPreloaderActive(false);
+      window.requestAnimationFrame(() => {
+        ScrollTrigger.refresh();
+        if (restoreFocusToMain) {
+          mainRef.current?.focus({ preventScroll: true });
+        }
+      });
+    },
+    []
+  );
+
+  // Initialize Lenis smooth scrolling only on desktop devices with fine pointers (avoid scroll hijacking on Android touchscreens)
   useEffect(() => {
-    if (prefersReducedMotion()) return;
+    if (prefersReducedMotion() || !canHoverAndFinePointer()) return;
 
     const lenis = new Lenis({
       lerp: 0.09,
@@ -148,33 +171,42 @@ export default function App() {
 
   return (
     <NavigationContext.Provider value={{ route, navigate }}>
-      {/* Skip-to-Content Link for Keyboard Accessibility */}
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[120] focus:rounded-full focus:bg-primary focus:px-5 focus:py-2.5 focus:font-mono focus:text-xs focus:font-bold focus:text-primary-foreground"
+      {/* Full-Screen Preloader Overlay (Once per browser-tab session) */}
+      {preloaderActive && <Preloader onComplete={handlePreloaderComplete} />}
+
+      {/* Portfolio Content Wrapper — inert while Preloader overlay is active */}
+      <div
+        inert={preloaderActive ? true : undefined}
+        aria-hidden={preloaderActive ? 'true' : undefined}
       >
-        Skip to content
-      </a>
+        {/* Skip-to-Content Link for Keyboard Accessibility */}
+        <a
+          href="#main-content"
+          className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-[120] focus:rounded-full focus:bg-primary focus:px-5 focus:py-2.5 focus:font-mono focus:text-xs focus:font-bold focus:text-primary-foreground"
+        >
+          Skip to content
+        </a>
 
-      <Curtain ref={curtainRef} />
-      <CursorLabel />
-      <SiteHeader theme={theme} onToggleTheme={toggleTheme} />
+        <Curtain ref={curtainRef} />
+        <CursorLabel />
+        <SiteHeader theme={theme} onToggleTheme={toggleTheme} />
 
-      <main
-        ref={mainRef}
-        id="main-content"
-        tabIndex={-1}
-        className="min-h-svh w-full outline-none"
-      >
-        {route.page === 'home' && <HomePage />}
-        {route.page === 'work' && <WorkPage />}
-        {route.page === 'tools' && <ToolsPage />}
-        {route.page === 'about' && <AboutPage />}
-        {route.page === 'resume' && <ResumePage />}
-        {route.page === 'project' && <ProjectPage id={route.id} />}
-      </main>
+        <main
+          ref={mainRef}
+          id="main-content"
+          tabIndex={-1}
+          className="min-h-svh w-full outline-none"
+        >
+          {route.page === 'home' && <HomePage />}
+          {route.page === 'work' && <WorkPage />}
+          {route.page === 'tools' && <ToolsPage />}
+          {route.page === 'about' && <AboutPage />}
+          {route.page === 'resume' && <ResumePage />}
+          {route.page === 'project' && <ProjectPage id={route.id} />}
+        </main>
 
-      <SiteFooter />
+        <SiteFooter />
+      </div>
     </NavigationContext.Provider>
   );
 }
