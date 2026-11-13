@@ -1,34 +1,114 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import {
   certifications,
   portfolioStatements,
 } from '../lib/content';
-import { gsap, motionOk, ScrollTrigger, useGSAP } from '../lib/gsap';
+import {
+  gsap,
+  motionOk,
+  prefersReducedMotion,
+  ScrollTrigger,
+  useGSAP,
+} from '../lib/gsap';
 
 export function Beyond() {
   const root = useRef<HTMLElement>(null);
-  const [expandedCode, setExpandedCode] = useState<string | null>('SOA-C02');
+  const certsGridRef = useRef<HTMLDivElement>(null);
+  const refreshTimerRef = useRef<number | undefined>(undefined);
+
+  const [expandedCodes, setExpandedCodes] = useState<Record<string, boolean>>({
+    'SOA-C02': true,
+  });
+  const [revealMode, setRevealMode] = useState<'animate' | 'instant'>(() => {
+    if (
+      typeof window === 'undefined' ||
+      typeof IntersectionObserver === 'undefined' ||
+      prefersReducedMotion()
+    ) {
+      return 'instant';
+    }
+    return 'animate';
+  });
+  const [revealedDelays, setRevealedDelays] = useState<Record<string, number>>(
+    {}
+  );
+
+  // Sync with live changes to prefers-reduced-motion
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const onChange = () => {
+      if (mq.matches) {
+        setRevealMode('instant');
+      }
+    };
+    mq.addEventListener?.('change', onChange);
+    return () => {
+      mq.removeEventListener?.('change', onChange);
+      window.clearTimeout(refreshTimerRef.current);
+    };
+  }, []);
+
+  // Scroll reveal for certifications using IntersectionObserver (~15% visibility, play once)
+  useEffect(() => {
+    if (revealMode !== 'animate') return;
+    const grid = certsGridRef.current;
+    if (!grid || typeof IntersectionObserver === 'undefined') {
+      setRevealMode('instant');
+      return;
+    }
+
+    const slots = Array.from(
+      grid.querySelectorAll<HTMLElement>('.cert-reveal-slot')
+    );
+    if (slots.length === 0) return;
+
+    try {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          const newlyVisible = entries
+            .filter((entry) => entry.isIntersecting)
+            .sort(
+              (a, b) =>
+                Number((a.target as HTMLElement).dataset.certIndex ?? 0) -
+                Number((b.target as HTMLElement).dataset.certIndex ?? 0)
+            );
+
+          if (newlyVisible.length === 0) return;
+
+          setRevealedDelays((prev) => {
+            let changed = false;
+            const next = { ...prev };
+            newlyVisible.forEach((entry, batchIdx) => {
+              const code = (entry.target as HTMLElement).dataset.certCode;
+              if (code && !(code in next)) {
+                next[code] = Math.min(batchIdx * 65, 300);
+                changed = true;
+              }
+              observer.unobserve(entry.target);
+            });
+            return changed ? next : prev;
+          });
+        },
+        { threshold: 0.15 }
+      );
+
+      slots.forEach((slot) => observer.observe(slot));
+
+      return () => {
+        observer.disconnect();
+      };
+    } catch {
+      setRevealMode('instant');
+    }
+  }, [revealMode]);
 
   useGSAP(
     () => {
       const section = root.current;
       if (!section || !motionOk()) return;
 
-      // 1. Certifications rows entrance
-      gsap.from('.cert-card', {
-        y: 40,
-        opacity: 0,
-        duration: 0.9,
-        stagger: 0.06,
-        ease: 'expo.out',
-        scrollTrigger: {
-          trigger: '.certs-grid',
-          start: 'top 82%',
-          toggleActions: 'play none none reverse',
-        },
-      });
-
-      // 2. Portfolio vision statements entrance
+      // Portfolio vision statements entrance
       gsap.from('.interest', {
         y: 40,
         opacity: 0,
@@ -48,6 +128,18 @@ export function Beyond() {
     },
     { scope: root }
   );
+
+  const handleToggleDetails = (code: string) => {
+    setExpandedCodes((prev) => ({
+      ...prev,
+      [code]: !prev[code],
+    }));
+
+    window.clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = window.setTimeout(() => {
+      ScrollTrigger.refresh();
+    }, 320);
+  };
 
   return (
     <section
@@ -79,76 +171,106 @@ export function Beyond() {
         </p>
       </div>
 
-      <div className="certs-grid grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {certifications.map((cert) => {
-          const isExpanded = expandedCode === cert.code;
+      <div
+        ref={certsGridRef}
+        data-reveal-mode={revealMode}
+        className="certs-grid grid grid-cols-1 items-start gap-4 md:grid-cols-2 lg:grid-cols-3"
+      >
+        {certifications.map((cert, index) => {
+          const isExpanded = Boolean(expandedCodes[cert.code]);
+          const isRevealed =
+            revealMode === 'instant' || cert.code in revealedDelays;
+          const delayMs =
+            revealMode === 'instant' ? 0 : (revealedDelays[cert.code] ?? 0);
+          const panelId = `cert-details-${cert.code
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '-')}`;
+
           return (
-            <article
+            <div
               key={cert.code}
-              className={`cert-card flex flex-col justify-between rounded-3xl border transition-colors duration-300 p-6 ${
-                isExpanded
-                  ? 'border-primary/50 bg-card shadow-md'
-                  : 'border-border bg-card/55 hover:border-foreground/25'
-              }`}
+              data-cert-code={cert.code}
+              data-cert-index={index}
+              data-revealed={isRevealed ? 'true' : 'false'}
+              style={{ '--cert-delay': `${delayMs}ms` } as CSSProperties}
+              className="cert-reveal-slot"
             >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="rounded-full bg-primary/10 px-3 py-1 font-mono text-xs font-bold text-primary">
-                    {cert.code}
-                  </span>
-                  <span className="font-mono text-xs text-muted-foreground">
-                    {cert.issuer}
-                  </span>
-                </div>
-
-                <h3 className="font-display text-xl font-extrabold leading-snug tracking-[-0.025em] text-foreground">
-                  {cert.name}
-                </h3>
-
-                <div className="font-mono text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <span>Issued: {cert.issued}</span>
-                  {cert.expires && (
-                    <>
-                      <span>·</span>
-                      <span>Expires: {cert.expires}</span>
-                    </>
-                  )}
-                </div>
-
-                <div className="flex flex-wrap gap-1.5 pt-1">
-                  {cert.skills.map((skill) => (
-                    <span
-                      key={skill}
-                      className="rounded-full border border-border bg-background/80 px-2.5 py-0.5 font-mono text-[11px] text-foreground/85"
-                    >
-                      {skill}
+              <article
+                data-expanded={isExpanded ? 'true' : 'false'}
+                className={`cert-card flex flex-col justify-between rounded-3xl border p-6 ${
+                  isExpanded
+                    ? 'border-primary/50 bg-card shadow-md'
+                    : 'border-border bg-card/55'
+                }`}
+              >
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="rounded-full bg-primary/10 px-3 py-1 font-mono text-xs font-bold text-primary">
+                      {cert.code}
                     </span>
-                  ))}
+                    <span className="font-mono text-xs text-muted-foreground">
+                      {cert.issuer}
+                    </span>
+                  </div>
+
+                  <h3 className="font-display text-xl font-extrabold leading-snug tracking-[-0.025em] text-foreground">
+                    {cert.name}
+                  </h3>
+
+                  <div className="font-mono text-xs text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <span>Issued: {cert.issued}</span>
+                    {cert.expires && (
+                      <>
+                        <span>·</span>
+                        <span>Expires: {cert.expires}</span>
+                      </>
+                    )}
+                  </div>
+
+                  <div className="cert-skills-list flex flex-wrap gap-1.5 pt-1">
+                    {cert.skills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="rounded-full border border-border bg-background/80 px-2.5 py-0.5 font-mono text-[11px] text-foreground/85"
+                      >
+                        {skill}
+                      </span>
+                    ))}
+                  </div>
                 </div>
 
-                {isExpanded && (
-                  <p className="pt-3 border-t border-border/70 font-sans text-sm leading-relaxed text-muted-foreground">
-                    {cert.description}
-                  </p>
-                )}
-              </div>
-
-              <div className="mt-5 pt-3 border-t border-border/50 flex items-center justify-between gap-2">
-                <span className="font-mono text-[11px] text-muted-foreground">
-                  Credential {cert.index}
-                </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setExpandedCode(isExpanded ? null : cert.code)
-                  }
-                  aria-expanded={isExpanded}
-                  className="inline-flex min-h-12 items-center justify-center rounded-full border border-border bg-background px-4 py-2 font-mono text-xs font-semibold text-primary transition-colors hover:border-primary cursor-pointer"
+                <div
+                  id={panelId}
+                  data-expanded={isExpanded ? 'true' : 'false'}
+                  aria-hidden={!isExpanded}
+                  inert={!isExpanded}
+                  className="cert-details"
                 >
-                  {isExpanded ? 'Hide details −' : 'View details +'}
-                </button>
-              </div>
-            </article>
+                  <div className="cert-details-inner">
+                    <div className="pt-4">
+                      <p className="pt-3 border-t border-border/70 font-sans text-sm leading-relaxed text-muted-foreground">
+                        {cert.description}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-5 pt-3 border-t border-border/50 flex items-center justify-between gap-2">
+                  <span className="font-mono text-[11px] text-muted-foreground">
+                    Credential {cert.index}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleToggleDetails(cert.code)}
+                    aria-expanded={isExpanded}
+                    aria-controls={panelId}
+                    className="cert-toggle-btn inline-flex min-h-12 items-center justify-center rounded-full border border-border bg-background px-4 py-2 font-mono text-xs font-semibold text-primary cursor-pointer"
+                  >
+                    {isExpanded ? 'Hide details −' : 'View details +'}
+                  </button>
+                </div>
+              </article>
+            </div>
           );
         })}
       </div>
